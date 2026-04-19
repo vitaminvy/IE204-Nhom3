@@ -21,6 +21,7 @@ jobs:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
+          port: 21
           server-dir: ${{ secrets.FTP_SERVER_DIR }}
           local-dir: ./
           exclude: |
@@ -29,6 +30,7 @@ jobs:
             **/.DS_Store
             docker-compose.yml
             README.md
+
 
       - name: Trigger remote story sync
         run: |
