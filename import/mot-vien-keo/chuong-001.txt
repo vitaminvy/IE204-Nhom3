@@ -2,10 +2,10 @@ Tên truyện: Một viên kẹo
 Slug truyện: mot-vien-keo
 Tác giả: Ái Mỹ Cường Đích Tiểu Thu Thu
 Tình trạng truyện: Đã hoàn
-Badge 1: Đang ra
+Badge 1: Đã hoàn
 Badge 2: Mỹ Cường
 Thể loại: Nguyên sang, Đam mỹ, Hiện đại, HE, Tình cảm, Chủ công
-Ảnh bìa: bia-mot-vien-keo.jpeg
+Ảnh bìa: bia-mot-vien-keo.jpg
 Mô tả truyện: Truyện đi theo hướng chính kịch nhẹ, tập trung vào quá trình hai người từ xa lạ đến gắn bó, với mô-típ tình cảm đạm mạc công × ngốc tử thụ
 
 Số chương: 31
@@ -88,3 +88,4 @@ Kiều Nam trả lời một chữ “Ừ”, rồi mở vài phần mềm trên
 Bận rộn một lúc, cậu buông điện thoại, lật người, nhắm mắt nằm nghiêng.
 Ngày mai thứ Bảy, có thể ngủ nướng, thật tốt.
 Dù là thứ Bảy, Kiều Nam vẫn dậy rất sớm. Tiếng động ầm ĩ từ nhà bên cạnh đột ngột vang lên, kéo cậu khỏi giấc ngủ. Nhìn điện thoại, mới sáu giờ rưỡi. Cậu nằm thẳng người, hai tay đặt trên bụng, thở dài, đành chịu thua mà rời giường. Rửa mặt đánh răng xong xuôi, cậu ra ngoài chạy bộ, tiện thể kiếm bữa sáng.
+

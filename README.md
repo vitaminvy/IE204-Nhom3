@@ -80,7 +80,7 @@ Section blog query bai viet moi nhat tu category ban chon trong Customizer. Neu 
 
 ## Deploy len hosting
 
-Neu ban muon theo kieu `git push -> host tu upload va tu import truyen`, repo da co san workflow:
+Neu ban muon theo kieu `git push -> host tu upload theme len hosting`, repo da co san workflow:
 
 - `/.github/workflows/deploy-theme.yml`
 
