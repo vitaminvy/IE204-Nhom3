@@ -132,7 +132,7 @@ function cowm_customize_register( $wp_customize ) {
 	$wp_customize->add_setting(
 		'cowm_hero_primary_label',
 		array(
-			'default'           => __( 'Đọc', 'comeout-with-me' ),
+			'default'           => __( 'Bắt đầu đọc', 'comeout-with-me' ),
 			'sanitize_callback' => 'sanitize_text_field',
 		)
 	);

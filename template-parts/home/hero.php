@@ -11,7 +11,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 $hero_title         = trim( (string) get_theme_mod( 'cowm_hero_title', 'Come Out With Me' ) );
 $hero_description   = trim( (string) get_theme_mod( 'cowm_hero_description', 'Nơi lưu trữ những hồ sơ "mỹ cường" đầy mê hoặc. Khám phá bản ngã, tìm kiếm những mảnh ghép tâm hồn qua từng chương truyện được tuyển chọn kỹ lưỡng.' ) );
-$hero_primary_label = trim( (string) get_theme_mod( 'cowm_hero_primary_label', __( 'Bat dau doc', 'comeout-with-me' ) ) );
+$hero_primary_label = cowm_normalize_legacy_copy(
+	trim( (string) get_theme_mod( 'cowm_hero_primary_label', __( 'Bắt đầu đọc', 'comeout-with-me' ) ) ),
+	array(
+		'Bat dau doc' => 'Bắt đầu đọc',
+		'BAT DAU DOC' => 'Bắt đầu đọc',
+		'Đọc'         => 'Bắt đầu đọc',
+	)
+);
 $hero_secondary_label = cowm_normalize_legacy_copy(
 	trim( (string) get_theme_mod( 'cowm_hero_secondary_label', __( 'Khám phá web', 'comeout-with-me' ) ) ),
 	array(
