@@ -846,6 +846,7 @@ function cowm_is_valid_remote_sync_token( $provided_token ) {
  * @return void
  */
 function cowm_handle_remote_story_sync_request() {
+	file_put_contents( WP_CONTENT_DIR . '/debug-manual.log', "sync reached\n", FILE_APPEND );
 	error_log( 'COWM sync: handler reached' );
 	error_log( 'COWM sync action: ' . ( isset( $_REQUEST['action'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['action'] ) ) : 'missing' ) );
 	error_log( 'COWM sync token: ' . ( isset( $_REQUEST['token'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['token'] ) ) : 'missing' ) );
