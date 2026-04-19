@@ -1,0 +1,35 @@
+:root {
+  --cowm-background: #fef9f2;
+  --cowm-foreground: #1d1c18;
+  --cowm-primary: #6d1924;
+  --cowm-outline: #dcc0c0;
+}
+
+.editor-styles-wrapper {
+  background: var(--cowm-background);
+  color: var(--cowm-foreground);
+  font-family: "Noto Serif", Georgia, serif;
+}
+
+.editor-styles-wrapper h1,
+.editor-styles-wrapper h2,
+.editor-styles-wrapper h3,
+.editor-styles-wrapper h4,
+.editor-styles-wrapper h5,
+.editor-styles-wrapper h6 {
+  color: var(--cowm-primary);
+  font-family: "Newsreader", Georgia, serif;
+}
+
+.editor-styles-wrapper a {
+  color: var(--cowm-primary);
+}
+
+.editor-styles-wrapper .wp-block {
+  max-width: 720px;
+}
+
+.editor-styles-wrapper .wp-block[data-align="wide"] {
+  max-width: 1200px;
+}
+

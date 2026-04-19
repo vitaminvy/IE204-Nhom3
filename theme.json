@@ -1,0 +1,103 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/theme.json",
+  "version": 3,
+  "settings": {
+    "appearanceTools": true,
+    "layout": {
+      "contentSize": "720px",
+      "wideSize": "1200px"
+    },
+    "color": {
+      "palette": [
+        {
+          "slug": "background",
+          "name": "Background",
+          "color": "#fef9f2"
+        },
+        {
+          "slug": "foreground",
+          "name": "Foreground",
+          "color": "#1d1c18"
+        },
+        {
+          "slug": "primary",
+          "name": "Primary",
+          "color": "#6d1924"
+        },
+        {
+          "slug": "primary-soft",
+          "name": "Primary Soft",
+          "color": "#8c3039"
+        },
+        {
+          "slug": "surface-low",
+          "name": "Surface Low",
+          "color": "#f8f3ec"
+        },
+        {
+          "slug": "surface-high",
+          "name": "Surface High",
+          "color": "#ece7e1"
+        },
+        {
+          "slug": "outline",
+          "name": "Outline",
+          "color": "#dcc0c0"
+        }
+      ]
+    },
+    "spacing": {
+      "units": [
+        "px",
+        "rem",
+        "%",
+        "vw",
+        "vh"
+      ]
+    },
+    "typography": {
+      "fontFamilies": [
+        {
+          "fontFamily": "\"Newsreader\", Georgia, serif",
+          "name": "Headline",
+          "slug": "headline"
+        },
+        {
+          "fontFamily": "\"Noto Serif\", Georgia, serif",
+          "name": "Body",
+          "slug": "body"
+        },
+        {
+          "fontFamily": "\"Work Sans\", system-ui, sans-serif",
+          "name": "Label",
+          "slug": "label"
+        }
+      ]
+    }
+  },
+  "styles": {
+    "color": {
+      "background": "#fef9f2",
+      "text": "#1d1c18"
+    },
+    "typography": {
+      "fontFamily": "var(--wp--preset--font-family--body)"
+    },
+    "elements": {
+      "heading": {
+        "typography": {
+          "fontFamily": "var(--wp--preset--font-family--headline)"
+        },
+        "color": {
+          "text": "#6d1924"
+        }
+      },
+      "link": {
+        "color": {
+          "text": "#6d1924"
+        }
+      }
+    }
+  }
+}
+

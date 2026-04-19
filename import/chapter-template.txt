@@ -1,0 +1,32 @@
+Tên truyện: Ánh Sáng Cuối Đường Hầm
+Slug truyện: anh-sang-cuoi-duong-ham
+Tác giả: Điền nếu có
+Tình trạng truyện: Đang ra
+Badge 1: Đang ra
+Badge 2: Mỹ Cường
+Thể loại: Nguyên sang, Đam mỹ, Hiện đại, HE, Tình cảm, Chủ công
+Ảnh bìa: cover.jpg
+Mô tả truyện: Hồ sơ về sự phản bội và chuộc lỗi giữa lòng thành phố rực rỡ nhưng lạnh lẽo.
+
+Số chương: 1
+Tên chương: Mở đầu
+Slug chương: mo-dau
+Ngày đăng: Để trống nếu không có
+
+Tóm tắt chương:
+Điền nếu có. Không bắt buộc.
+
+Nội dung:
+Dán toàn bộ nội dung chương ở đây.
+
+Ghi chú:
+- `Số chương` là số của chương hiện tại, không phải tổng số chương của cả truyện.
+- Nếu nội dung thô của bạn mở đầu bằng `Chương 1` hoặc tên chương, importer sẽ tự bỏ dòng đó để trang đọc không bị lặp tiêu đề.
+
+Nếu muốn xuống đoạn, cứ để trống 1 dòng giữa các đoạn.
+
+Ví dụ:
+
+Đêm đó thành phố sáng đến mức không ai nhận ra bóng tối đang mở miệng nuốt chửng từng góc phố.
+
+Anh đứng dưới mái hiên cũ, nhìn ánh đèn phản xuống mặt đường ướt mưa, cảm giác như mọi bí mật đều đang bị kéo lên bề mặt.

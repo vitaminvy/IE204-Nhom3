@@ -1,0 +1,9 @@
+.DS_Store
+Thumbs.db
+
+# Editor / OS noise
+.vscode/
+.idea/
+
+# Local WordPress / Docker noise
+*.log
