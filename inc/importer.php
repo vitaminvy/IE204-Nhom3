@@ -846,9 +846,13 @@ function cowm_is_valid_remote_sync_token( $provided_token ) {
  * @return void
  */
 function cowm_handle_remote_story_sync_request() {
+	error_log( 'COWM sync: handler reached' );
+	error_log( 'COWM sync action: ' . ( isset( $_REQUEST['action'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['action'] ) ) : 'missing' ) );
+	error_log( 'COWM sync token: ' . ( isset( $_REQUEST['token'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['token'] ) ) : 'missing' ) );
 	$token = isset( $_REQUEST['token'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['token'] ) ) : '';
 
 	if ( ! cowm_is_valid_remote_sync_token( $token ) ) {
+		error_log( 'COWM sync: invalid token' );
 		status_header( 403 );
 		wp_send_json(
 			array(
@@ -863,6 +867,7 @@ function cowm_handle_remote_story_sync_request() {
 	$has_errors = ! empty( $report['errors'] );
 
 	if ( $has_errors ) {
+		error_log( 'COWM sync: import has errors' );
 		status_header( 500 );
 		wp_send_json(
 			array(
@@ -874,6 +879,7 @@ function cowm_handle_remote_story_sync_request() {
 		);
 	}
 
+	error_log( 'COWM sync: success' );
 	wp_send_json(
 		array(
 			'success' => true,
