@@ -10,13 +10,14 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Upload theme via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
@@ -25,11 +26,13 @@ jobs:
           port: 21
           server-dir: ${{ secrets.FTP_SERVER_DIR }}
           local-dir: ./
+          timeout: 120000
           exclude: |
             **/.git*
+            **/.git*/**
+            **/.git/**
             **/.github/**
             **/.DS_Store
             docker-compose.yml
             README.md
-
 
