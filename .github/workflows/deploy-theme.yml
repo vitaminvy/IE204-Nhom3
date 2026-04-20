@@ -33,6 +33,6 @@ jobs:
             **/.git/**
             **/.github/**
             **/.DS_Store
+            import/**
             docker-compose.yml
             README.md
-
