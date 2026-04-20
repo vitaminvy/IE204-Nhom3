@@ -119,3 +119,56 @@ function cowm_body_classes( $classes ) {
 	return $classes;
 }
 add_filter( 'body_class', 'cowm_body_classes' );
+
+/**
+ * Keep front-end search focused on stories and editorial posts.
+ *
+ * @param WP_Query $query Main query instance.
+ * @return void
+ */
+function cowm_tune_search_queries( $query ) {
+	if ( is_admin() || ! $query->is_main_query() || ! $query->is_search() ) {
+		return;
+	}
+
+	$post_type = $query->get( 'post_type' );
+
+	if ( empty( $post_type ) ) {
+		$query->set(
+			'post_type',
+			array(
+				'post',
+				'cowm_story',
+			)
+		);
+		return;
+	}
+
+	if ( is_string( $post_type ) ) {
+		$post_type = array( $post_type );
+	}
+
+	if ( ! is_array( $post_type ) ) {
+		return;
+	}
+
+	$allowed_post_types = array_values(
+		array_intersect(
+			$post_type,
+			array(
+				'post',
+				'cowm_story',
+			)
+		)
+	);
+
+	if ( empty( $allowed_post_types ) ) {
+		$allowed_post_types = array(
+			'post',
+			'cowm_story',
+		);
+	}
+
+	$query->set( 'post_type', $allowed_post_types );
+}
+add_action( 'pre_get_posts', 'cowm_tune_search_queries' );
