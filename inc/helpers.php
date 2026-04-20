@@ -638,13 +638,13 @@ function cowm_get_relative_post_time( $post_id ) {
 }
 
 /**
- * Return term chips for the highlights section.
+ * Get popular story tags for archive filtering.
  *
  * @param int $limit Maximum terms.
  * @return WP_Term[]
  */
-function cowm_get_highlight_terms( $limit = 7 ) {
-	$limit = max( 1, absint( $limit ) );
+function cowm_get_story_filter_terms( $limit = 12 ) {
+	$limit     = max( 1, absint( $limit ) );
 	$story_ids = get_posts(
 		array(
 			'post_type'              => 'cowm_story',
@@ -657,56 +657,73 @@ function cowm_get_highlight_terms( $limit = 7 ) {
 		)
 	);
 
-	if ( ! empty( $story_ids ) ) {
-		$terms = wp_get_object_terms(
-			$story_ids,
-			'post_tag',
-			array(
-				'fields' => 'all_with_object_id',
-			)
-		);
+	if ( empty( $story_ids ) ) {
+		return array();
+	}
 
-		if ( ! is_wp_error( $terms ) && ! empty( $terms ) ) {
-			$grouped = array();
+	$terms = wp_get_object_terms(
+		$story_ids,
+		'post_tag',
+		array(
+			'fields' => 'all_with_object_id',
+		)
+	);
 
-			foreach ( $terms as $term ) {
-				$term_id = (int) $term->term_id;
+	if ( is_wp_error( $terms ) || empty( $terms ) ) {
+		return array();
+	}
 
-				if ( ! isset( $grouped[ $term_id ] ) ) {
-					$grouped[ $term_id ] = array(
-						'term'       => $term,
-						'object_ids' => array(),
-					);
-				}
+	$grouped = array();
 
-				$grouped[ $term_id ]['object_ids'][ (int) $term->object_id ] = true;
-			}
+	foreach ( $terms as $term ) {
+		$term_id = (int) $term->term_id;
 
-			uasort(
-				$grouped,
-				static function ( $left, $right ) {
-					$left_count  = count( $left['object_ids'] );
-					$right_count = count( $right['object_ids'] );
-
-					if ( $left_count !== $right_count ) {
-						return $right_count <=> $left_count;
-					}
-
-					return strnatcasecmp( $left['term']->name, $right['term']->name );
-				}
+		if ( ! isset( $grouped[ $term_id ] ) ) {
+			$grouped[ $term_id ] = array(
+				'term'       => $term,
+				'object_ids' => array(),
 			);
-
-			$highlight_terms = array();
-
-			foreach ( array_slice( $grouped, 0, $limit, true ) as $item ) {
-				$item['term']->count = count( $item['object_ids'] );
-				$highlight_terms[]   = $item['term'];
-			}
-
-			if ( ! empty( $highlight_terms ) ) {
-				return $highlight_terms;
-			}
 		}
+
+		$grouped[ $term_id ]['object_ids'][ (int) $term->object_id ] = true;
+	}
+
+	uasort(
+		$grouped,
+		static function ( $left, $right ) {
+			$left_count  = count( $left['object_ids'] );
+			$right_count = count( $right['object_ids'] );
+
+			if ( $left_count !== $right_count ) {
+				return $right_count <=> $left_count;
+			}
+
+			return strnatcasecmp( $left['term']->name, $right['term']->name );
+		}
+	);
+
+	$filter_terms = array();
+
+	foreach ( array_slice( $grouped, 0, $limit, true ) as $item ) {
+		$item['term']->count = count( $item['object_ids'] );
+		$filter_terms[]      = $item['term'];
+	}
+
+	return $filter_terms;
+}
+
+/**
+ * Return term chips for the highlights section.
+ *
+ * @param int $limit Maximum terms.
+ * @return WP_Term[]
+ */
+function cowm_get_highlight_terms( $limit = 7 ) {
+	$limit = max( 1, absint( $limit ) );
+	$highlight_terms = cowm_get_story_filter_terms( $limit );
+
+	if ( ! empty( $highlight_terms ) ) {
+		return $highlight_terms;
 	}
 
 	$excluded = array_filter(
@@ -856,6 +873,24 @@ function cowm_get_icon( $icon ) {
 }
 
 /**
+ * Build SEO description for the story archive.
+ *
+ * @param WP_Term|null $term Active tag term.
+ * @return string
+ */
+function cowm_get_story_archive_seo_description( $term = null ) {
+	if ( $term instanceof WP_Term ) {
+		return sprintf(
+			/* translators: %s is the selected story tag. */
+			__( 'Khám phá truyện đam mỹ theo từ khóa %s tại Chuyên Án: lọc nhanh theo tag, xem tác giả, badge, thể loại, tình trạng truyện và số chương cập nhật mới nhất.', 'comeout-with-me' ),
+			$term->name
+		);
+	}
+
+	return __( 'Chuyên Án tổng hợp truyện đam mỹ theo từ khóa, tag, tác giả, thể loại, badge và tình trạng để bạn tìm truyện nhanh hơn và theo dõi chương mới thuận tiện hơn.', 'comeout-with-me' );
+}
+
+/**
  * Customize document titles for story archive screens.
  *
  * @param array<string, string> $parts Title parts.
@@ -874,7 +909,7 @@ function cowm_filter_document_title_parts( $parts ) {
 		if ( $term instanceof WP_Term ) {
 			$parts['title'] = sprintf(
 				/* translators: %s is the selected tag name. */
-				__( 'Chuyên Án: %s', 'comeout-with-me' ),
+				__( 'Chuyên Án truyện đam mỹ tag %s', 'comeout-with-me' ),
 				$term->name
 			);
 
@@ -882,8 +917,39 @@ function cowm_filter_document_title_parts( $parts ) {
 		}
 	}
 
-	$parts['title'] = __( 'Chuyên Án', 'comeout-with-me' );
+	$parts['title'] = __( 'Chuyên Án truyện đam mỹ theo tag', 'comeout-with-me' );
 
 	return $parts;
 }
 add_filter( 'document_title_parts', 'cowm_filter_document_title_parts' );
+
+/**
+ * Output archive meta description for story landing pages.
+ *
+ * @return void
+ */
+function cowm_output_story_archive_meta_description() {
+	if ( ! is_post_type_archive( 'cowm_story' ) ) {
+		return;
+	}
+
+	$story_tag   = absint( get_query_var( 'story_tag' ) );
+	$current_term = $story_tag ? get_term( $story_tag, 'post_tag' ) : null;
+	$description = cowm_get_story_archive_seo_description( $current_term instanceof WP_Term ? $current_term : null );
+
+	if ( '' === trim( $description ) ) {
+		return;
+	}
+
+	$description = wp_strip_all_tags( $description );
+
+	printf(
+		"<meta name=\"description\" content=\"%s\" />\n",
+		esc_attr( $description )
+	);
+	printf(
+		"<meta property=\"og:description\" content=\"%s\" />\n",
+		esc_attr( $description )
+	);
+}
+add_action( 'wp_head', 'cowm_output_story_archive_meta_description', 1 );

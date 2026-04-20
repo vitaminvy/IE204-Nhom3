@@ -62,88 +62,28 @@ $hero_image_url = $hero_story instanceof WP_Post && has_post_thumbnail( $hero_st
 	);
 
 $hero_author = $hero_story instanceof WP_Post ? cowm_get_story_author_name( $hero_story->ID ) : '';
-$filter_story_args = array(
-	'post_type'              => 'cowm_story',
-	'post_status'            => 'publish',
-	'posts_per_page'         => -1,
-	'fields'                 => 'ids',
-	'no_found_rows'          => true,
-	'update_post_meta_cache' => false,
-	'update_post_term_cache' => false,
-	'ignore_sticky_posts'    => true,
-);
+$archive_terms            = cowm_get_story_filter_terms( 12 );
+$filter_query_args        = array();
 
-if ( $story_category || $story_tag ) {
-	$tax_query = array();
-
-	if ( $story_category ) {
-		$tax_query[] = array(
-			'taxonomy' => 'category',
-			'field'    => 'term_id',
-			'terms'    => $story_category,
-		);
-	}
-
-	if ( $story_tag ) {
-		$tax_query[] = array(
-			'taxonomy' => 'post_tag',
-			'field'    => 'term_id',
-			'terms'    => $story_tag,
-		);
-	}
-
-	if ( count( $tax_query ) > 1 ) {
-		$tax_query['relation'] = 'AND';
-	}
-
-	$filter_story_args['tax_query'] = $tax_query;
+if ( $story_category ) {
+	$filter_query_args['story_category'] = $story_category;
 }
 
-$filter_story_ids = get_posts( $filter_story_args );
-$archive_terms    = array();
+$all_stories_url = empty( $filter_query_args ) ? $archive_url : add_query_arg( $filter_query_args, $archive_url );
 
-if ( ! empty( $filter_story_ids ) ) {
-	$term_rows = wp_get_object_terms(
-		$filter_story_ids,
-		'post_tag',
-		array(
-			'fields' => 'all_with_object_id',
-		)
-	);
+if ( $current_term instanceof WP_Term ) {
+	$has_current_term = false;
 
-	if ( ! is_wp_error( $term_rows ) && ! empty( $term_rows ) ) {
-		$grouped_terms = array();
-
-		foreach ( $term_rows as $term_row ) {
-			$term_id = (int) $term_row->term_id;
-
-			if ( ! isset( $grouped_terms[ $term_id ] ) ) {
-				$grouped_terms[ $term_id ] = array(
-					'term'       => $term_row,
-					'object_ids' => array(),
-				);
-			}
-
-			$grouped_terms[ $term_id ]['object_ids'][ (int) $term_row->object_id ] = true;
+	foreach ( $archive_terms as $archive_term ) {
+		if ( (int) $archive_term->term_id === (int) $current_term->term_id ) {
+			$has_current_term = true;
+			break;
 		}
+	}
 
-		uasort(
-			$grouped_terms,
-			static function ( $left, $right ) {
-				$left_count  = count( $left['object_ids'] );
-				$right_count = count( $right['object_ids'] );
-
-				if ( $left_count !== $right_count ) {
-					return $right_count <=> $left_count;
-				}
-
-				return strnatcasecmp( $left['term']->name, $right['term']->name );
-			}
-		);
-
-		foreach ( array_slice( $grouped_terms, 0, 8, true ) as $grouped_term ) {
-			$archive_terms[] = $grouped_term['term'];
-		}
+	if ( ! $has_current_term ) {
+		array_unshift( $archive_terms, $current_term );
+		$archive_terms = array_slice( $archive_terms, 0, 12 );
 	}
 }
 
@@ -232,15 +172,21 @@ $archive_sections = array(
 		</div>
 	</section>
 
-	<section class="story-archive-filterbar">
+	<section class="story-archive-filterbar" id="story-archive-filters">
 		<div class="site-shell">
-			<div class="story-archive-filterbar__inner" role="list" aria-label="<?php esc_attr_e( 'Story filters', 'comeout-with-me' ); ?>">
-				<a class="story-archive-filter<?php echo 0 === $story_tag ? ' is-active' : ''; ?>" href="<?php echo esc_url( $archive_url ); ?>" role="listitem"><?php esc_html_e( 'Tất cả', 'comeout-with-me' ); ?></a>
+			<div class="story-archive-filterbar__inner" role="list" aria-label="<?php esc_attr_e( 'Quick filter story tags', 'comeout-with-me' ); ?>">
+				<a class="story-archive-filter<?php echo 0 === $story_tag ? ' is-active' : ''; ?>" href="<?php echo esc_url( $all_stories_url ); ?>" data-story-filter-link role="listitem"<?php echo 0 === $story_tag ? ' aria-current="page"' : ''; ?>><?php esc_html_e( 'Tất cả', 'comeout-with-me' ); ?></a>
 				<?php foreach ( $archive_terms as $archive_term ) : ?>
+					<?php
+					$term_filter_args              = $filter_query_args;
+					$term_filter_args['story_tag'] = (int) $archive_term->term_id;
+					?>
 					<a
 						class="story-archive-filter<?php echo (int) $archive_term->term_id === $story_tag ? ' is-active' : ''; ?>"
-						href="<?php echo esc_url( add_query_arg( 'story_tag', (int) $archive_term->term_id, $archive_url ) ); ?>"
+						href="<?php echo esc_url( add_query_arg( $term_filter_args, $archive_url ) ); ?>"
+						data-story-filter-link
 						role="listitem"
+						<?php echo (int) $archive_term->term_id === $story_tag ? ' aria-current="page"' : ''; ?>
 					>
 						<?php echo esc_html( $archive_term->name ); ?>
 					</a>

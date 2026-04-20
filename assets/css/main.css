@@ -1194,6 +1194,10 @@ svg {
 }
 
 .story-archive-filterbar {
+  scroll-margin-top: 7.5rem;
+}
+
+.story-archive-filterbar {
   position: sticky;
   top: 5.9rem;
   z-index: 60;
