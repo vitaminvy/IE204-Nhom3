@@ -113,6 +113,15 @@ function cowm_body_classes( $classes ) {
 		$classes[] = 'is-profile-board-page';
 	}
 
+	if ( function_exists( 'cowm_is_sidewalk_page' ) && cowm_is_sidewalk_page() ) {
+		$classes   = array_values( array_diff( $classes, array( 'home', 'blog' ) ) );
+		$classes[] = 'is-sidewalk-page';
+	}
+
+	if ( is_singular( 'post' ) && 'chao-moi-nguoi' === get_post_field( 'post_name', get_queried_object_id() ) ) {
+		$classes[] = 'is-intro-post-page';
+	}
+
 	if ( is_singular( 'cowm_story' ) ) {
 		$classes[] = 'is-single-story';
 	}

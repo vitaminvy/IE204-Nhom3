@@ -461,27 +461,107 @@ function cowm_include_profile_board_template( $template ) {
 add_filter( 'template_include', 'cowm_include_profile_board_template', 99 );
 
 /**
+ * Get the dedicated sidewalk editorial page slug.
+ *
+ * @return string
+ */
+function cowm_get_sidewalk_page_slug() {
+	return 'tra-da-via-he';
+}
+
+/**
+ * Get the dedicated sidewalk editorial page URL.
+ *
+ * @return string
+ */
+function cowm_get_sidewalk_page_url() {
+	return home_url( user_trailingslashit( cowm_get_sidewalk_page_slug() ) );
+}
+
+/**
+ * Determine whether the current request is the dedicated sidewalk editorial page.
+ *
+ * @return bool
+ */
+function cowm_is_sidewalk_page() {
+	return (bool) get_query_var( 'cowm_sidewalk_page' ) || is_page( cowm_get_sidewalk_page_slug() );
+}
+
+/**
+ * Register the public query var for the dedicated sidewalk editorial page.
+ *
+ * @param string[] $vars Existing public query vars.
+ * @return string[]
+ */
+function cowm_register_sidewalk_query_var( $vars ) {
+	$vars[] = 'cowm_sidewalk_page';
+
+	return $vars;
+}
+add_filter( 'query_vars', 'cowm_register_sidewalk_query_var' );
+
+/**
+ * Register rewrite rules for the dedicated sidewalk editorial page.
+ *
+ * @return void
+ */
+function cowm_register_sidewalk_rewrite_rules() {
+	$slug = trim( (string) cowm_get_sidewalk_page_slug(), '/' );
+
+	if ( '' === $slug ) {
+		return;
+	}
+
+	add_rewrite_rule(
+		'^' . preg_quote( $slug, '/' ) . '/?$',
+		'index.php?cowm_sidewalk_page=1',
+		'top'
+	);
+}
+add_action( 'init', 'cowm_register_sidewalk_rewrite_rules', 20 );
+
+/**
+ * Flush rewrite rules once when the sidewalk editorial route changes.
+ *
+ * @return void
+ */
+function cowm_maybe_flush_sidewalk_rewrite_rules() {
+	$version = '2026-04-20-sidewalk-v1';
+
+	if ( get_option( 'cowm_sidewalk_rewrite_version' ) === $version ) {
+		return;
+	}
+
+	cowm_register_sidewalk_rewrite_rules();
+	flush_rewrite_rules( false );
+	update_option( 'cowm_sidewalk_rewrite_version', $version, false );
+}
+add_action( 'init', 'cowm_maybe_flush_sidewalk_rewrite_rules', 100 );
+
+/**
+ * Swap in the dedicated template for the sidewalk editorial route.
+ *
+ * @param string $template Resolved template path.
+ * @return string
+ */
+function cowm_include_sidewalk_template( $template ) {
+	if ( ! get_query_var( 'cowm_sidewalk_page' ) ) {
+		return $template;
+	}
+
+	$sidewalk_template = locate_template( 'page-tra-da-via-he.php' );
+
+	return $sidewalk_template ? $sidewalk_template : $template;
+}
+add_filter( 'template_include', 'cowm_include_sidewalk_template', 99 );
+
+/**
  * Get the blog archive URL.
  *
  * @return string
  */
 function cowm_get_blog_archive_url() {
-	$category_id = absint( get_theme_mod( 'cowm_blog_category', 0 ) );
-
-	if ( $category_id ) {
-		$link = get_category_link( $category_id );
-		if ( ! is_wp_error( $link ) ) {
-			return $link;
-		}
-	}
-
-	$posts_page = (int) get_option( 'page_for_posts' );
-
-	if ( $posts_page ) {
-		return get_permalink( $posts_page );
-	}
-
-	return home_url( '/' );
+	return cowm_get_sidewalk_page_url();
 }
 
 /**
@@ -533,7 +613,8 @@ function cowm_get_story_query_args( $count = 6 ) {
  */
 function cowm_get_blog_query_args( $count = 2 ) {
 	$category_id = absint( get_theme_mod( 'cowm_blog_category', 0 ) );
-	$count       = max( 1, absint( $count ) );
+	$count       = (int) $count;
+	$count       = $count < 1 ? -1 : max( 1, absint( $count ) );
 
 	$args = array(
 		'post_type'           => 'post',
@@ -549,6 +630,23 @@ function cowm_get_blog_query_args( $count = 2 ) {
 	}
 
 	return $args;
+}
+
+/**
+ * Resolve the active category filter for the sidewalk editorial page.
+ *
+ * @return WP_Term|null
+ */
+function cowm_get_sidewalk_filter_term() {
+	$category_slug = isset( $_GET['review_cat'] ) ? sanitize_title( wp_unslash( $_GET['review_cat'] ) ) : '';
+
+	if ( '' === $category_slug ) {
+		return null;
+	}
+
+	$term = get_term_by( 'slug', $category_slug, 'category' );
+
+	return $term instanceof WP_Term ? $term : null;
 }
 
 /**
@@ -1068,10 +1166,12 @@ function cowm_get_story_tag_archive_url( $term ) {
  * @return array<int, array<string, mixed>>
  */
 function cowm_get_default_primary_menu_items() {
-	$story_archive_url      = cowm_get_story_archive_url();
-	$profile_board_url      = cowm_get_profile_board_page_url();
-	$is_story_screen        = is_post_type_archive( 'cowm_story' ) || is_singular( 'cowm_story' ) || is_singular( 'cowm_chapter' );
+	$story_archive_url       = cowm_get_story_archive_url();
+	$profile_board_url       = cowm_get_profile_board_page_url();
+	$sidewalk_page_url       = cowm_get_sidewalk_page_url();
+	$is_story_screen         = is_post_type_archive( 'cowm_story' ) || is_singular( 'cowm_story' ) || is_singular( 'cowm_chapter' );
 	$is_profile_board_screen = cowm_is_profile_board_screen();
+	$is_sidewalk_screen      = cowm_is_sidewalk_page();
 
 	// Resolve the contact page URL.
 	$contact_url       = home_url( '/#lien-he' );
@@ -1101,8 +1201,8 @@ function cowm_get_default_primary_menu_items() {
 		),
 		array(
 			'label'      => 'Trà Đá Vỉa Hè',
-			'url'        => home_url( '/#tra-da-via-he' ),
-			'is_current' => false,
+			'url'        => $sidewalk_page_url,
+			'is_current' => $is_sidewalk_screen,
 		),
 		array(
 			'label'      => 'Hộp Thư Mật',
@@ -1178,16 +1278,44 @@ function cowm_normalize_primary_menu_items( $items, $args ) {
 		'/#phac-hoa',
 		'#phac-hoa',
 	);
-	$profile_board_url   = cowm_get_profile_board_page_url();
+	$legacy_sidewalk_urls = array(
+		home_url( '/#tra-da-via-he' ),
+		home_url( '/#tra-da-via-he/' ),
+		'/#tra-da-via-he',
+		'#tra-da-via-he',
+	);
+	$profile_board_url    = cowm_get_profile_board_page_url();
+	$sidewalk_page_url    = cowm_get_sidewalk_page_url();
+	$profile_urls         = array_merge( $legacy_profile_urls, array( $profile_board_url ) );
+	$sidewalk_urls        = array_merge( $legacy_sidewalk_urls, array( $sidewalk_page_url ) );
 
 	foreach ( $items as $item ) {
-		if ( ! isset( $item->url ) || ! in_array( (string) $item->url, $legacy_profile_urls, true ) ) {
+		if ( ! isset( $item->url ) ) {
 			continue;
 		}
 
-		$item->url = $profile_board_url;
+		$item_url = (string) $item->url;
 
-		if ( cowm_is_profile_board_screen() ) {
+		if ( in_array( $item_url, $profile_urls, true ) ) {
+			$item->url = $profile_board_url;
+
+			if ( cowm_is_profile_board_screen() ) {
+				$item->current   = true;
+				$item->classes   = isset( $item->classes ) && is_array( $item->classes ) ? $item->classes : array();
+				$item->classes[] = 'current-menu-item';
+				$item->classes   = array_values( array_unique( $item->classes ) );
+			}
+
+			continue;
+		}
+
+		if ( ! in_array( $item_url, $sidewalk_urls, true ) ) {
+			continue;
+		}
+
+		$item->url = $sidewalk_page_url;
+
+		if ( cowm_is_sidewalk_page() ) {
 			$item->current   = true;
 			$item->classes   = isset( $item->classes ) && is_array( $item->classes ) ? $item->classes : array();
 			$item->classes[] = 'current-menu-item';
@@ -1247,12 +1375,46 @@ function cowm_get_profile_board_seo_description() {
 }
 
 /**
+ * Build SEO description for the sidewalk editorial page.
+ *
+ * @param WP_Term|null $term Active category term.
+ * @return string
+ */
+function cowm_get_sidewalk_page_seo_description( $term = null ) {
+	if ( $term instanceof WP_Term ) {
+		return sprintf(
+			/* translators: %s is the selected category name. */
+			__( 'Trà Đá Vỉa Hè tổng hợp review truyện, toplist và ghi chú biên tập theo chủ đề %s để độc giả tìm bài cảm nhận, bài gợi ý và danh sách đọc phù hợp nhanh hơn.', 'comeout-with-me' ),
+			$term->name
+		);
+	}
+
+	return __( 'Trà Đá Vỉa Hè là góc review truyện, toplist và ghi chú biên tập để bạn theo dõi cảm nhận đọc, bài tuyển chọn và hồ sơ biên tập mới nhất từ Come Out With Me Local.', 'comeout-with-me' );
+}
+
+/**
  * Customize document titles for story archive screens.
  *
  * @param array<string, string> $parts Title parts.
  * @return array<string, string>
  */
 function cowm_filter_document_title_parts( $parts ) {
+	if ( cowm_is_sidewalk_page() ) {
+		$active_term = cowm_get_sidewalk_filter_term();
+
+		if ( $active_term instanceof WP_Term ) {
+			$parts['title'] = sprintf(
+				/* translators: %s is the active review category. */
+				__( 'Trà Đá Vỉa Hè review truyện %s', 'comeout-with-me' ),
+				$active_term->name
+			);
+		} else {
+			$parts['title'] = __( 'Trà Đá Vỉa Hè review truyện đam mỹ', 'comeout-with-me' );
+		}
+
+		return $parts;
+	}
+
 	if ( cowm_is_profile_board_screen() ) {
 		$parts['title'] = __( 'Phác Họa Chân Dung truyện đam mỹ theo tag', 'comeout-with-me' );
 
@@ -1300,6 +1462,29 @@ add_filter( 'document_title_parts', 'cowm_filter_document_title_parts' );
  * @return void
  */
 function cowm_output_story_archive_meta_description() {
+	if ( cowm_is_sidewalk_page() ) {
+		$active_term   = cowm_get_sidewalk_filter_term();
+		$description   = wp_strip_all_tags( cowm_get_sidewalk_page_seo_description( $active_term ) );
+		$canonical_url = $active_term instanceof WP_Term
+			? add_query_arg( 'review_cat', $active_term->slug, cowm_get_sidewalk_page_url() )
+			: cowm_get_sidewalk_page_url();
+
+		printf(
+			"<meta name=\"description\" content=\"%s\" />\n",
+			esc_attr( $description )
+		);
+		printf(
+			"<meta property=\"og:description\" content=\"%s\" />\n",
+			esc_attr( $description )
+		);
+		printf(
+			"<link rel=\"canonical\" href=\"%s\" />\n",
+			esc_url( $canonical_url )
+		);
+
+		return;
+	}
+
 	if ( cowm_is_profile_board_screen() ) {
 		$description = wp_strip_all_tags( cowm_get_profile_board_seo_description() );
 

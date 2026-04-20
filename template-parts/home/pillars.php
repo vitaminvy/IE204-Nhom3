@@ -24,6 +24,7 @@ $legacy_copy_map = array(
 );
 
 $profile_board_url = trim( (string) get_theme_mod( 'cowm_pillar_2_url', '' ) );
+$sidewalk_page_url = trim( (string) get_theme_mod( 'cowm_pillar_3_url', '' ) );
 
 if (
 	'' === $profile_board_url
@@ -39,6 +40,22 @@ if (
 	)
 ) {
 	$profile_board_url = cowm_get_profile_board_page_url();
+}
+
+if (
+	'' === $sidewalk_page_url
+	|| in_array(
+		$sidewalk_page_url,
+		array(
+			home_url( '/#tra-da-via-he' ),
+			home_url( '/#tra-da-via-he/' ),
+			'/#tra-da-via-he',
+			'#tra-da-via-he',
+		),
+		true
+	)
+) {
+	$sidewalk_page_url = cowm_get_blog_archive_url();
 }
 
 $pillars = array(
@@ -61,7 +78,7 @@ $pillars = array(
 		'title' => cowm_normalize_legacy_copy( (string) get_theme_mod( 'cowm_pillar_3_title', __( 'Trà đá vỉa hè', 'comeout-with-me' ) ), $legacy_copy_map ),
 		'text'  => cowm_normalize_legacy_copy( (string) get_theme_mod( 'cowm_pillar_3_text', __( 'Góc blog, review và toplist để chia sẻ cảm nhận, mood đọc và gợi ý cho cộng đồng.', 'comeout-with-me' ) ), $legacy_copy_map ),
 		'label' => cowm_normalize_legacy_copy( (string) get_theme_mod( 'cowm_pillar_3_label', __( 'Ghé quán', 'comeout-with-me' ) ), $legacy_copy_map ),
-		'url'   => get_theme_mod( 'cowm_pillar_3_url', '' ),
+		'url'   => $sidewalk_page_url,
 	),
 );
 ?>
