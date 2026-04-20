@@ -81,7 +81,33 @@ function cowm_get_theme_asset_image_url( $relative_paths, $fallback = '' ) {
 function cowm_normalize_legacy_copy( $value, $replacements ) {
 	$value = (string) $value;
 
-	return isset( $replacements[ $value ] ) ? $replacements[ $value ] : $value;
+	if ( isset( $replacements[ $value ] ) ) {
+		return $replacements[ $value ];
+	}
+
+	$normalized_value = trim( preg_replace( '/\s+/', ' ', remove_accents( $value ) ) );
+
+	if ( function_exists( 'mb_strtolower' ) ) {
+		$normalized_value = mb_strtolower( $normalized_value, 'UTF-8' );
+	} else {
+		$normalized_value = strtolower( $normalized_value );
+	}
+
+	foreach ( $replacements as $legacy => $replacement ) {
+		$normalized_legacy = trim( preg_replace( '/\s+/', ' ', remove_accents( (string) $legacy ) ) );
+
+		if ( function_exists( 'mb_strtolower' ) ) {
+			$normalized_legacy = mb_strtolower( $normalized_legacy, 'UTF-8' );
+		} else {
+			$normalized_legacy = strtolower( $normalized_legacy );
+		}
+
+		if ( $normalized_value === $normalized_legacy ) {
+			return $replacement;
+		}
+	}
+
+	return $value;
 }
 
 /**
@@ -502,6 +528,22 @@ function cowm_get_story_progress_label( $post_id ) {
 }
 
 /**
+ * Get author label for a story card.
+ *
+ * @param int $post_id Post ID.
+ * @return string
+ */
+function cowm_get_story_author_name( $post_id ) {
+	$author = trim( (string) get_post_meta( $post_id, 'cowm_story_author_name', true ) );
+
+	if ( $author ) {
+		return $author;
+	}
+
+	return '';
+}
+
+/**
  * Get time ago text for a post.
  *
  * @param int $post_id Post ID.
@@ -639,6 +681,9 @@ function cowm_get_story_tag_archive_url( $term ) {
  * @return array<int, array<string, mixed>>
  */
 function cowm_get_default_primary_menu_items() {
+	$story_archive_url = cowm_get_story_archive_url();
+	$is_story_screen   = is_post_type_archive( 'cowm_story' ) || is_singular( 'cowm_story' ) || is_singular( 'cowm_chapter' );
+
 	return array(
 		array(
 			'label'      => 'Trang chủ',
@@ -647,8 +692,8 @@ function cowm_get_default_primary_menu_items() {
 		),
 		array(
 			'label'      => 'Chuyên Án',
-			'url'        => home_url( '/#chuyen-an' ),
-			'is_current' => false,
+			'url'        => $story_archive_url,
+			'is_current' => $is_story_screen,
 		),
 		array(
 			'label'      => 'Phác Họa chân dung',
@@ -735,3 +780,36 @@ function cowm_get_icon( $icon ) {
 
 	return isset( $icons[ $icon ] ) ? $icons[ $icon ] : '';
 }
+
+/**
+ * Customize document titles for story archive screens.
+ *
+ * @param array<string, string> $parts Title parts.
+ * @return array<string, string>
+ */
+function cowm_filter_document_title_parts( $parts ) {
+	if ( ! is_post_type_archive( 'cowm_story' ) ) {
+		return $parts;
+	}
+
+	$story_tag = absint( get_query_var( 'story_tag' ) );
+
+	if ( $story_tag ) {
+		$term = get_term( $story_tag, 'post_tag' );
+
+		if ( $term instanceof WP_Term ) {
+			$parts['title'] = sprintf(
+				/* translators: %s is the selected tag name. */
+				__( 'Chuyên Án: %s', 'comeout-with-me' ),
+				$term->name
+			);
+
+			return $parts;
+		}
+	}
+
+	$parts['title'] = __( 'Chuyên Án', 'comeout-with-me' );
+
+	return $parts;
+}
+add_filter( 'document_title_parts', 'cowm_filter_document_title_parts' );

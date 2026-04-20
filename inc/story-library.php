@@ -471,6 +471,7 @@ function cowm_tune_story_archive_queries( $query ) {
 	}
 
 	$query->set( 'meta_key', 'cowm_latest_chapter_timestamp' );
+	$query->set( 'posts_per_page', 10 );
 	$query->set(
 		'orderby',
 		array(
