@@ -723,12 +723,22 @@ function cowm_count_non_empty_import_text_files( $folder_path ) {
  * @return array<string,mixed>
  */
 function cowm_get_import_auto_sync_state() {
+	$version = '2026-04-20-auto-sync-v3';
 	$state = get_option( 'cowm_import_auto_sync_state', array() );
 
 	if ( ! is_array( $state ) ) {
 		$state = array();
 	}
 
+	if ( ! isset( $state['version'] ) || $version !== $state['version'] ) {
+		$state = array(
+			'version'        => $version,
+			'success_hashes' => array(),
+			'error_hashes'   => array(),
+		);
+	}
+
+	$state['version']        = $version;
 	$state['success_hashes'] = isset( $state['success_hashes'] ) && is_array( $state['success_hashes'] ) ? $state['success_hashes'] : array();
 	$state['error_hashes']   = isset( $state['error_hashes'] ) && is_array( $state['error_hashes'] ) ? $state['error_hashes'] : array();
 
@@ -790,7 +800,12 @@ function cowm_import_all_story_folders() {
 			continue;
 		}
 
-		$result = cowm_import_story_folder( $folder_path );
+		$result = cowm_import_story_folder(
+			$folder_path,
+			array(
+				'skip_invalid_entries' => true,
+			)
+		);
 
 		if ( is_wp_error( $result ) ) {
 			$report['errors'][] = array(
@@ -956,7 +971,12 @@ function cowm_maybe_auto_sync_story_imports() {
 			continue;
 		}
 
-		$result = cowm_import_story_folder( $folder_path );
+		$result = cowm_import_story_folder(
+			$folder_path,
+			array(
+				'skip_invalid_entries' => true,
+			)
+		);
 
 		if ( is_wp_error( $result ) ) {
 			$errors[ $key ] = $signature;
@@ -1174,10 +1194,18 @@ function cowm_upsert_import_chapter( $story_id, $chapter_data, $story_slug ) {
 /**
  * Import a story folder that contains one or more chapter text files.
  *
- * @param string $folder_input Folder name, relative path, or absolute path.
+ * @param string              $folder_input Folder name, relative path, or absolute path.
+ * @param array<string,mixed> $args         Import behavior flags.
  * @return array|WP_Error
  */
-function cowm_import_story_folder( $folder_input ) {
+function cowm_import_story_folder( $folder_input, $args = array() ) {
+	$args = wp_parse_args(
+		$args,
+		array(
+			'skip_invalid_entries' => false,
+		)
+	);
+
 	$folder_path = cowm_normalize_import_folder_path( $folder_input );
 
 	if ( is_wp_error( $folder_path ) ) {
@@ -1221,12 +1249,32 @@ function cowm_import_story_folder( $folder_input ) {
 		$entry = cowm_parse_import_chapter_file( $chapter_file );
 
 		if ( is_wp_error( $entry ) ) {
+			if ( ! empty( $args['skip_invalid_entries'] ) ) {
+				$warnings[] = sprintf(
+					/* translators: 1: file name, 2: error message. */
+					__( 'Đã bỏ qua file chưa hoàn chỉnh %1$s: %2$s', 'comeout-with-me' ),
+					basename( $chapter_file ),
+					$entry->get_error_message()
+				);
+				continue;
+			}
+
 			return $entry;
 		}
 
 		$validation = cowm_validate_import_entry( $entry );
 
 		if ( ! empty( $validation['errors'] ) ) {
+			if ( ! empty( $args['skip_invalid_entries'] ) ) {
+				$warnings[] = sprintf(
+					/* translators: 1: file name, 2: validation error list. */
+					__( 'Đã bỏ qua file chưa hoàn chỉnh %1$s: %2$s', 'comeout-with-me' ),
+					basename( $chapter_file ),
+					implode( ' ', $validation['errors'] )
+				);
+				continue;
+			}
+
 			return new WP_Error(
 				'invalid_import_file',
 				sprintf(
@@ -1412,7 +1460,7 @@ function cowm_render_story_import_admin_page() {
 		<p><code><?php echo esc_html( $import_root ); ?></code></p>
 		<p>
 			<strong><?php esc_html_e( 'Auto sync local:', 'comeout-with-me' ); ?></strong>
-			<?php echo cowm_is_import_auto_sync_enabled() ? esc_html__( 'Đang bật. Khi file trong import/ đổi, lần tải trang local kế tiếp sẽ tự import lại.', 'comeout-with-me' ) : esc_html__( 'Đang tắt.', 'comeout-with-me' ); ?>
+			<?php echo cowm_is_import_auto_sync_enabled() ? esc_html__( 'Đang bật. Khi file trong import/ đổi, lần tải trang local kế tiếp sẽ tự import lại. File chương đang soạn dở sẽ được bỏ qua thay vì chặn cả folder.', 'comeout-with-me' ) : esc_html__( 'Đang tắt.', 'comeout-with-me' ); ?>
 		</p>
 
 		<?php if ( $notice ) : ?>
