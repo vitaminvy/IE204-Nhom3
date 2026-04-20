@@ -13,13 +13,23 @@ get_header();
 
 global $wp_query;
 
-$story_category = absint( get_query_var( 'story_category' ) );
-$story_tag      = absint( get_query_var( 'story_tag' ) );
-$archive_url    = cowm_get_story_archive_url();
-$current_term   = $story_tag ? get_term( $story_tag, 'post_tag' ) : null;
-$page_stories   = $wp_query->posts;
-$hero_story     = ! empty( $page_stories ) ? $page_stories[0] : null;
-$latest_stories = array_slice( $page_stories, 0, 5 );
+$story_category  = absint( get_query_var( 'story_category' ) );
+$story_tag_raw   = get_query_var( 'story_tag' );
+$active_tag_ids  = array_values( array_unique( array_filter( array_map( 'absint', explode( ',', (string) $story_tag_raw ) ) ) ) );
+$archive_url     = cowm_get_story_archive_url();
+$current_terms   = array();
+
+foreach ( $active_tag_ids as $tag_id ) {
+	$term = get_term( $tag_id, 'post_tag' );
+
+	if ( $term instanceof WP_Term ) {
+		$current_terms[] = $term;
+	}
+}
+
+$page_stories    = $wp_query->posts;
+$hero_story      = ! empty( $page_stories ) ? $page_stories[0] : null;
+$latest_stories  = array_slice( $page_stories, 0, 5 );
 $curated_stories = array_slice( $page_stories, 5, 5 );
 
 if ( empty( $curated_stories ) && ! empty( $latest_stories ) ) {
@@ -41,14 +51,18 @@ if ( $hero_story instanceof WP_Post ) {
 	$hero_chips = array_slice( array_values( array_unique( array_filter( $hero_chips ) ) ), 0, 3 );
 }
 
-$hero_title_line = $current_term instanceof WP_Term ? $current_term->name : __( 'Chuyên Án', 'comeout-with-me' );
-$hero_description = $current_term instanceof WP_Term
-	? sprintf(
-		/* translators: %s is the selected tag name. */
+if ( ! empty( $current_terms ) ) {
+	$term_name_list  = wp_list_pluck( $current_terms, 'name' );
+	$hero_title_line = implode( ' + ', $term_name_list );
+	$hero_description = sprintf(
+		/* translators: %s is the selected tag name(s). */
 		__( 'Tập hợp những hồ sơ xoay quanh nhãn %s, được sắp theo lần cập nhật mới nhất để bạn lần theo từng manh mối nhanh hơn.', 'comeout-with-me' ),
-		$current_term->name
-	)
-	: __( 'Kho lưu trữ những hồ sơ đam mỹ mỹ cường được tuyển chọn, phân loại bằng tag và sắp theo nhịp cập nhật chương mới để bạn tra cứu gọn hơn.', 'comeout-with-me' );
+		implode( ', ', $term_name_list )
+	);
+} else {
+	$hero_title_line  = __( 'Chuyên Án', 'comeout-with-me' );
+	$hero_description = __( 'Kho lưu trữ những hồ sơ đam mỹ mỹ cường được tuyển chọn, phân loại bằng tag và sắp theo nhịp cập nhật chương mới để bạn tra cứu gọn hơn.', 'comeout-with-me' );
+}
 
 $hero_image_url = $hero_story instanceof WP_Post && has_post_thumbnail( $hero_story )
 	? get_the_post_thumbnail_url( $hero_story, 'cowm-featured-story' )
@@ -71,7 +85,8 @@ if ( $story_category ) {
 
 $all_stories_url = empty( $filter_query_args ) ? $archive_url : add_query_arg( $filter_query_args, $archive_url );
 
-if ( $current_term instanceof WP_Term ) {
+// Make sure all active tags appear in the filter bar.
+foreach ( $current_terms as $current_term ) {
 	$has_current_term = false;
 
 	foreach ( $archive_terms as $archive_term ) {
@@ -83,9 +98,10 @@ if ( $current_term instanceof WP_Term ) {
 
 	if ( ! $has_current_term ) {
 		array_unshift( $archive_terms, $current_term );
-		$archive_terms = array_slice( $archive_terms, 0, 12 );
 	}
 }
+
+$archive_terms = array_slice( $archive_terms, 0, 12 );
 
 $archive_sections = array(
 	array(
@@ -174,22 +190,19 @@ $archive_sections = array(
 
 	<section class="story-archive-filterbar" id="story-archive-filters">
 		<div class="site-shell">
-			<div class="story-archive-filterbar__inner" role="list" aria-label="<?php esc_attr_e( 'Quick filter story tags', 'comeout-with-me' ); ?>">
-				<a class="story-archive-filter<?php echo 0 === $story_tag ? ' is-active' : ''; ?>" href="<?php echo esc_url( $all_stories_url ); ?>" data-story-filter-link role="listitem"<?php echo 0 === $story_tag ? ' aria-current="page"' : ''; ?>><?php esc_html_e( 'Tất cả', 'comeout-with-me' ); ?></a>
+			<div class="story-archive-filterbar__inner" role="list" aria-label="<?php esc_attr_e( 'Quick filter story tags', 'comeout-with-me' ); ?>" data-multi-tag-bar data-archive-url="<?php echo esc_url( $archive_url ); ?>" data-extra-args="<?php echo esc_attr( wp_json_encode( $filter_query_args ) ); ?>">
+				<button class="story-archive-filter<?php echo empty( $active_tag_ids ) ? ' is-active' : ''; ?>" type="button" data-tag-reset role="listitem"<?php echo empty( $active_tag_ids ) ? ' aria-current="page"' : ''; ?>><?php esc_html_e( 'Tất cả', 'comeout-with-me' ); ?></button>
 				<?php foreach ( $archive_terms as $archive_term ) : ?>
-					<?php
-					$term_filter_args              = $filter_query_args;
-					$term_filter_args['story_tag'] = (int) $archive_term->term_id;
-					?>
-					<a
-						class="story-archive-filter<?php echo (int) $archive_term->term_id === $story_tag ? ' is-active' : ''; ?>"
-						href="<?php echo esc_url( add_query_arg( $term_filter_args, $archive_url ) ); ?>"
-						data-story-filter-link
+					<?php $is_tag_active = in_array( (int) $archive_term->term_id, $active_tag_ids, true ); ?>
+					<button
+						class="story-archive-filter<?php echo $is_tag_active ? ' is-active' : ''; ?>"
+						type="button"
+						data-tag-id="<?php echo esc_attr( (int) $archive_term->term_id ); ?>"
 						role="listitem"
-						<?php echo (int) $archive_term->term_id === $story_tag ? ' aria-current="page"' : ''; ?>
+						<?php echo $is_tag_active ? ' aria-pressed="true"' : ' aria-pressed="false"'; ?>
 					>
 						<?php echo esc_html( $archive_term->name ); ?>
-					</a>
+					</button>
 				<?php endforeach; ?>
 			</div>
 		</div>

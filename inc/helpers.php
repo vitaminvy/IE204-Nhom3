@@ -797,7 +797,7 @@ function cowm_get_default_primary_menu_items() {
 			'is_current' => false,
 		),
 		array(
-			'label'      => 'Liên Hệ',
+			'label'      => 'Hộp Thư Mật',
 			'url'        => home_url( '/#lien-he' ),
 			'is_current' => false,
 		),
@@ -901,16 +901,25 @@ function cowm_filter_document_title_parts( $parts ) {
 		return $parts;
 	}
 
-	$story_tag = absint( get_query_var( 'story_tag' ) );
+	$story_tag_raw = get_query_var( 'story_tag' );
+	$story_tag_ids = array_filter( array_map( 'absint', explode( ',', (string) $story_tag_raw ) ) );
 
-	if ( $story_tag ) {
-		$term = get_term( $story_tag, 'post_tag' );
+	if ( ! empty( $story_tag_ids ) ) {
+		$term_names = array();
 
-		if ( $term instanceof WP_Term ) {
+		foreach ( $story_tag_ids as $tag_id ) {
+			$term = get_term( $tag_id, 'post_tag' );
+
+			if ( $term instanceof WP_Term ) {
+				$term_names[] = $term->name;
+			}
+		}
+
+		if ( ! empty( $term_names ) ) {
 			$parts['title'] = sprintf(
-				/* translators: %s is the selected tag name. */
+				/* translators: %s is the selected tag name(s). */
 				__( 'Chuyên Án truyện đam mỹ tag %s', 'comeout-with-me' ),
-				$term->name
+				implode( ', ', $term_names )
 			);
 
 			return $parts;
@@ -933,9 +942,21 @@ function cowm_output_story_archive_meta_description() {
 		return;
 	}
 
-	$story_tag   = absint( get_query_var( 'story_tag' ) );
-	$current_term = $story_tag ? get_term( $story_tag, 'post_tag' ) : null;
-	$description = cowm_get_story_archive_seo_description( $current_term instanceof WP_Term ? $current_term : null );
+	$story_tag_raw = get_query_var( 'story_tag' );
+	$story_tag_ids = array_filter( array_map( 'absint', explode( ',', (string) $story_tag_raw ) ) );
+	$current_terms = array();
+
+	foreach ( $story_tag_ids as $tag_id ) {
+		$term = get_term( $tag_id, 'post_tag' );
+
+		if ( $term instanceof WP_Term ) {
+			$current_terms[] = $term;
+		}
+	}
+
+	$description = ! empty( $current_terms )
+		? cowm_get_story_archive_seo_description( $current_terms[0] )
+		: cowm_get_story_archive_seo_description();
 
 	if ( '' === trim( $description ) ) {
 		return;

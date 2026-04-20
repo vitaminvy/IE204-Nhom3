@@ -443,7 +443,8 @@ function cowm_tune_story_archive_queries( $query ) {
 	}
 
 	$story_category = absint( $query->get( 'story_category' ) );
-	$story_tag      = absint( $query->get( 'story_tag' ) );
+	$story_tag_raw  = $query->get( 'story_tag' );
+	$story_tag_ids  = array_filter( array_map( 'absint', explode( ',', (string) $story_tag_raw ) ) );
 	$tax_query      = array();
 
 	if ( $story_category ) {
@@ -454,11 +455,12 @@ function cowm_tune_story_archive_queries( $query ) {
 		);
 	}
 
-	if ( $story_tag ) {
+	if ( ! empty( $story_tag_ids ) ) {
 		$tax_query[] = array(
 			'taxonomy' => 'post_tag',
 			'field'    => 'term_id',
-			'terms'    => $story_tag,
+			'terms'    => $story_tag_ids,
+			'operator' => 'AND',
 		);
 	}
 
