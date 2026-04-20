@@ -280,13 +280,23 @@ document.addEventListener('DOMContentLoaded', function () {
     function applyBoardFilters() {
       var query = normalizeFilterText(searchInput ? searchInput.value : '');
       var visibleCount = 0;
+      var seenStoryIds = Object.create(null);
 
       Array.prototype.forEach.call(cards, function (card) {
         var cardFilter = card.getAttribute('data-profile-filter-value') || '';
+        var storyId = card.getAttribute('data-profile-story-id') || '';
         var cardSearchText = normalizeFilterText(card.getAttribute('data-profile-search') || '');
         var matchesFilter = activeFilter === 'all' || cardFilter === activeFilter;
         var matchesSearch = !query || cardSearchText.indexOf(query) !== -1;
         var isVisible = matchesFilter && matchesSearch;
+
+        if (isVisible && activeFilter === 'all' && storyId) {
+          if (seenStoryIds[storyId]) {
+            isVisible = false;
+          } else {
+            seenStoryIds[storyId] = true;
+          }
+        }
 
         card.hidden = !isVisible;
         card.classList.toggle('is-hidden', !isVisible);

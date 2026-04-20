@@ -38,6 +38,16 @@ $title_words   = preg_split( '/\s+/u', trim( $section_title ) );
 $title_words   = array_values( array_filter( is_array( $title_words ) ? $title_words : array() ) );
 $story_counts  = wp_count_posts( 'cowm_story' );
 $story_total   = $story_counts && isset( $story_counts->publish ) ? absint( $story_counts->publish ) : count( $cards );
+$unique_story_total = count(
+	array_unique(
+		array_filter(
+			array_map(
+				'absint',
+				wp_list_pluck( $cards, 'story_id' )
+			)
+		)
+	)
+);
 $archive_url   = cowm_get_story_archive_url();
 
 if ( empty( $title_words ) ) {
@@ -78,7 +88,7 @@ if ( empty( $title_words ) ) {
 				<div class="profile-board-sidebar__filters" role="list" aria-label="<?php esc_attr_e( 'Bộ lọc hồ sơ', 'comeout-with-me' ); ?>">
 					<button class="profile-board-filter is-active" type="button" data-profile-filter-button data-profile-filter="all" aria-pressed="true" role="listitem">
 						<span><?php esc_html_e( 'Tất cả hồ sơ', 'comeout-with-me' ); ?></span>
-						<em><?php echo esc_html( count( $cards ) ); ?></em>
+						<em><?php echo esc_html( $unique_story_total ); ?></em>
 					</button>
 
 					<?php foreach ( $cards as $card ) : ?>
@@ -128,6 +138,7 @@ if ( empty( $title_words ) ) {
 						class="profile-board-card<?php echo 0 === $card_index ? ' is-featured' : ''; ?>"
 						data-profile-card
 						data-profile-filter-value="<?php echo esc_attr( (string) $card['term_id'] ); ?>"
+						data-profile-story-id="<?php echo esc_attr( (string) absint( $card['story_id'] ) ); ?>"
 						data-profile-search="<?php echo esc_attr( $card['search_text'] ); ?>"
 					>
 						<a class="profile-board-card__link" href="<?php echo esc_url( $card['url'] ); ?>">
