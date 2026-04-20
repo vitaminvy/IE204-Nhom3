@@ -172,3 +172,113 @@ function cowm_tune_search_queries( $query ) {
 	$query->set( 'post_type', $allowed_post_types );
 }
 add_action( 'pre_get_posts', 'cowm_tune_search_queries' );
+
+/**
+ * Extend search to story metadata and genre taxonomies.
+ *
+ * Keeps WordPress title/excerpt/content search intact, then ORs in matches for:
+ * author, status text, badges, tags, and categories.
+ *
+ * @param string   $search Search SQL fragment.
+ * @param WP_Query $query  Current query.
+ * @return string
+ */
+function cowm_extend_search_sql( $search, $query ) {
+	if ( is_admin() || ! $query->is_main_query() || ! $query->is_search() ) {
+		return $search;
+	}
+
+	$search_terms = $query->get( 'search_terms' );
+
+	if ( ! is_array( $search_terms ) || empty( $search_terms ) ) {
+		$raw_search = trim( (string) $query->get( 's' ) );
+
+		if ( '' === $raw_search ) {
+			return $search;
+		}
+
+		$search_terms = array( $raw_search );
+	}
+
+	global $wpdb;
+
+	$meta_keys = array(
+		'cowm_story_author_name',
+		'cowm_story_status_text',
+		'cowm_status_label',
+		'cowm_secondary_label',
+	);
+
+	$prepared_meta_keys = implode(
+		', ',
+		array_map(
+			static function ( $meta_key ) use ( $wpdb ) {
+				return $wpdb->prepare( '%s', $meta_key );
+			},
+			$meta_keys
+		)
+	);
+
+	$extra_term_groups = array();
+
+	foreach ( $search_terms as $search_term ) {
+		$search_term = trim( (string) $search_term );
+
+		if ( '' === $search_term ) {
+			continue;
+		}
+
+		$like = '%' . $wpdb->esc_like( $search_term ) . '%';
+
+		$extra_term_groups[] = sprintf(
+			'(%1$s OR %2$s)',
+			$wpdb->prepare(
+				"EXISTS (
+					SELECT 1
+					FROM {$wpdb->postmeta} cowm_pm
+					WHERE cowm_pm.post_id = {$wpdb->posts}.ID
+						AND cowm_pm.meta_key IN ({$prepared_meta_keys})
+						AND cowm_pm.meta_value LIKE %s
+				)",
+				$like
+			),
+			$wpdb->prepare(
+				"EXISTS (
+					SELECT 1
+					FROM {$wpdb->term_relationships} cowm_tr
+					INNER JOIN {$wpdb->term_taxonomy} cowm_tt
+						ON cowm_tt.term_taxonomy_id = cowm_tr.term_taxonomy_id
+					INNER JOIN {$wpdb->terms} cowm_t
+						ON cowm_t.term_id = cowm_tt.term_id
+					WHERE cowm_tr.object_id = {$wpdb->posts}.ID
+						AND cowm_tt.taxonomy IN ('post_tag', 'category')
+						AND cowm_t.name LIKE %s
+				)",
+				$like
+			)
+		);
+	}
+
+	if ( empty( $extra_term_groups ) ) {
+		return $search;
+	}
+
+	$password_clause = '';
+	$base_search     = (string) $search;
+	$password_regex  = '/\s+AND\s+\(' . preg_quote( $wpdb->posts, '/' ) . "\.post_password = ''\)\s*$/";
+
+	if ( preg_match( $password_regex, $base_search, $password_match ) ) {
+		$password_clause = $password_match[0];
+		$base_search     = preg_replace( $password_regex, '', $base_search );
+	}
+
+	$base_search = preg_replace( '/^\s*AND\s*/', '', trim( $base_search ), 1 );
+	$extra_search = '(' . implode( ' AND ', $extra_term_groups ) . ')';
+
+	if ( '' === $base_search ) {
+		return ' AND ' . $extra_search . $password_clause;
+	}
+
+	return ' AND (' . $base_search . ' OR ' . $extra_search . ')' . $password_clause;
+}
+add_filter( 'posts_search', 'cowm_extend_search_sql', 20, 2 );
