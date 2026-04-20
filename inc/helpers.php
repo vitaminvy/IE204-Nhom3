@@ -775,6 +775,16 @@ function cowm_get_default_primary_menu_items() {
 	$story_archive_url = cowm_get_story_archive_url();
 	$is_story_screen   = is_post_type_archive( 'cowm_story' ) || is_singular( 'cowm_story' ) || is_singular( 'cowm_chapter' );
 
+	// Resolve the contact page URL.
+	$contact_url       = home_url( '/#lien-he' );
+	$is_contact_screen = false;
+	$contact_page      = get_page_by_path( 'hop-thu-mat' );
+
+	if ( $contact_page instanceof WP_Post ) {
+		$contact_url       = get_permalink( $contact_page );
+		$is_contact_screen = is_page( $contact_page->ID );
+	}
+
 	return array(
 		array(
 			'label'      => 'Trang chủ',
@@ -798,8 +808,8 @@ function cowm_get_default_primary_menu_items() {
 		),
 		array(
 			'label'      => 'Hộp Thư Mật',
-			'url'        => home_url( '/#lien-he' ),
-			'is_current' => false,
+			'url'        => $contact_url,
+			'is_current' => $is_contact_screen,
 		),
 	);
 }

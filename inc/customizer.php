@@ -660,5 +660,110 @@ function cowm_customize_register( $wp_customize ) {
 			'type'        => 'text',
 		)
 	);
+	// Hộp Thư Mật / Contact page.
+	$wp_customize->add_section(
+		'cowm_contact_section',
+		array(
+			'title' => __( 'Hộp Thư Mật (Contact)', 'comeout-with-me' ),
+			'panel' => 'cowm_homepage_panel',
+		)
+	);
+
+	$wp_customize->add_setting(
+		'cowm_contact_email',
+		array(
+			'default'           => 'agent@comeoutwithme.com',
+			'sanitize_callback' => 'sanitize_email',
+		)
+	);
+	$wp_customize->add_control(
+		'cowm_contact_email',
+		array(
+			'label'   => __( 'Contact Email', 'comeout-with-me' ),
+			'section' => 'cowm_contact_section',
+			'type'    => 'email',
+		)
+	);
+
+	$wp_customize->add_setting(
+		'cowm_contact_facebook',
+		array(
+			'default'           => '#',
+			'sanitize_callback' => 'esc_url_raw',
+		)
+	);
+	$wp_customize->add_control(
+		'cowm_contact_facebook',
+		array(
+			'label'   => __( 'Facebook URL', 'comeout-with-me' ),
+			'section' => 'cowm_contact_section',
+			'type'    => 'url',
+		)
+	);
+
+	$wp_customize->add_setting(
+		'cowm_contact_telegram',
+		array(
+			'default'           => '#',
+			'sanitize_callback' => 'esc_url_raw',
+		)
+	);
+	$wp_customize->add_control(
+		'cowm_contact_telegram',
+		array(
+			'label'   => __( 'Telegram URL', 'comeout-with-me' ),
+			'section' => 'cowm_contact_section',
+			'type'    => 'url',
+		)
+	);
+
+	$wp_customize->add_setting(
+		'cowm_contact_group',
+		array(
+			'default'           => '#',
+			'sanitize_callback' => 'esc_url_raw',
+		)
+	);
+	$wp_customize->add_control(
+		'cowm_contact_group',
+		array(
+			'label'   => __( 'Informant Group URL', 'comeout-with-me' ),
+			'section' => 'cowm_contact_section',
+			'type'    => 'url',
+		)
+	);
+	$wp_customize->add_setting(
+		'cowm_contact_seal_image',
+		array(
+			'default'           => '',
+			'sanitize_callback' => 'esc_url_raw',
+		)
+	);
+	$wp_customize->add_control(
+		'cowm_contact_seal_image',
+		array(
+			'label'       => __( 'Seal Image URL (con dấu)', 'comeout-with-me' ),
+			'description' => __( 'Dán link hình con dấu. Để trống nếu không dùng.', 'comeout-with-me' ),
+			'section'     => 'cowm_contact_section',
+			'type'        => 'url',
+		)
+	);
+
+	$wp_customize->add_setting(
+		'cowm_contact_evidence_image',
+		array(
+			'default'           => '',
+			'sanitize_callback' => 'esc_url_raw',
+		)
+	);
+	$wp_customize->add_control(
+		'cowm_contact_evidence_image',
+		array(
+			'label'       => __( 'Evidence Photo URL (ảnh sidebar)', 'comeout-with-me' ),
+			'description' => __( 'Dán link hình ảnh evidence. Để trống nếu không dùng.', 'comeout-with-me' ),
+			'section'     => 'cowm_contact_section',
+			'type'        => 'url',
+		)
+	);
 }
 add_action( 'customize_register', 'cowm_customize_register' );
