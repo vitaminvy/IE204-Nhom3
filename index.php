@@ -14,7 +14,16 @@ get_header();
 <main id="primary" class="site-main">
 	<section class="archive-shell site-shell">
 		<header class="archive-header">
-			<?php if ( is_home() && ! is_front_page() ) : ?>
+			<?php if ( is_search() ) : ?>
+				<h1 class="archive-title">
+					<?php
+					printf(
+						esc_html__( 'Kết quả cho: %s', 'comeout-with-me' ),
+						esc_html( get_search_query( false ) )
+					);
+					?>
+				</h1>
+			<?php elseif ( is_home() && ! is_front_page() ) : ?>
 				<h1 class="archive-title"><?php single_post_title(); ?></h1>
 			<?php else : ?>
 				<h1 class="archive-title"><?php bloginfo( 'name' ); ?></h1>
@@ -50,4 +59,3 @@ get_header();
 </main>
 <?php
 get_footer();
-
