@@ -42,6 +42,11 @@ if ( '' === $copyright ) {
 		<p class="site-footer__copy"><?php echo esc_html( $copyright ); ?></p>
 	</div>
 </footer>
+<button class="back-to-top" type="button" data-back-to-top aria-hidden="true" tabindex="-1">
+	<span class="screen-reader-text"><?php esc_html_e( 'Lên đầu trang', 'comeout-with-me' ); ?></span>
+	<?php echo cowm_get_icon( 'arrow' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+	<span class="back-to-top__label"><?php esc_html_e( 'Lên đầu', 'comeout-with-me' ); ?></span>
+</button>
 <?php wp_footer(); ?>
 </body>
 </html>
