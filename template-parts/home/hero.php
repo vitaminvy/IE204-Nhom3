@@ -46,8 +46,24 @@ $hero_image_alt     = $hero_image_id ? cowm_get_attachment_alt( $hero_image_id, 
 $hero_primary_url   = $hero_primary_url ? $hero_primary_url : cowm_get_story_archive_url();
 $hero_secondary_url = trim( (string) $hero_secondary_url );
 
-if ( '' === $hero_secondary_url || in_array( $hero_secondary_url, array( home_url( '/about/' ), home_url( '/about' ), '/about/', '/about' ), true ) ) {
-	$hero_secondary_url = home_url( '/#phac-hoa' );
+if (
+	'' === $hero_secondary_url
+	|| in_array(
+		$hero_secondary_url,
+		array(
+			home_url( '/about/' ),
+			home_url( '/about' ),
+			'/about/',
+			'/about',
+			home_url( '/#phac-hoa' ),
+			home_url( '/#phac-hoa/' ),
+			'/#phac-hoa',
+			'#phac-hoa',
+		),
+		true
+	)
+) {
+	$hero_secondary_url = cowm_get_profile_board_page_url();
 }
 ?>
 <section class="hero-section site-shell">

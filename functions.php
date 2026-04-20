@@ -108,6 +108,11 @@ function cowm_body_classes( $classes ) {
 		$classes[] = 'is-front-page';
 	}
 
+	if ( function_exists( 'cowm_is_profile_board_screen' ) && cowm_is_profile_board_screen() ) {
+		$classes   = array_values( array_diff( $classes, array( 'home', 'blog' ) ) );
+		$classes[] = 'is-profile-board-page';
+	}
+
 	if ( is_singular( 'cowm_story' ) ) {
 		$classes[] = 'is-single-story';
 	}

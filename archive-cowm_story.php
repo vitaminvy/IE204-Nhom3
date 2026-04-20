@@ -76,7 +76,7 @@ $hero_image_url = $hero_story instanceof WP_Post && has_post_thumbnail( $hero_st
 	);
 
 $hero_author = $hero_story instanceof WP_Post ? cowm_get_story_author_name( $hero_story->ID ) : '';
-$archive_terms            = cowm_get_story_filter_terms( 12 );
+$archive_terms            = cowm_get_story_filter_terms( 0 );
 $filter_query_args        = array();
 
 if ( $story_category ) {
@@ -100,8 +100,6 @@ foreach ( $current_terms as $current_term ) {
 		array_unshift( $archive_terms, $current_term );
 	}
 }
-
-$archive_terms = array_slice( $archive_terms, 0, 12 );
 
 $archive_sections = array(
 	array(

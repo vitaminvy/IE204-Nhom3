@@ -8,6 +8,16 @@ document.addEventListener('DOMContentLoaded', function () {
   var storyArchiveScrollKey = 'cowmStoryArchiveScrollRestore';
   var pendingStoryArchiveScroll = null;
 
+  function normalizeFilterText(value) {
+    var text = (value || '').toString().toLowerCase();
+
+    if (text.normalize) {
+      text = text.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    }
+
+    return text.trim();
+  }
+
   function getStoryArchiveUrlKey(url) {
     return url.pathname + url.search;
   }
@@ -246,6 +256,70 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     });
   }
+
+  // Homepage profiling board filters.
+  var profileBoards = document.querySelectorAll('[data-profile-board]');
+
+  Array.prototype.forEach.call(profileBoards, function (board) {
+    var searchInput = board.querySelector('[data-profile-search-input]');
+    var filterButtons = board.querySelectorAll('[data-profile-filter-button]');
+    var cards = board.querySelectorAll('[data-profile-card]');
+    var emptyState = board.querySelector('[data-profile-empty]');
+    var resultCount = board.querySelector('[data-profile-result-count]');
+    var activeFilter = 'all';
+
+    function updateFilterButtons() {
+      Array.prototype.forEach.call(filterButtons, function (button) {
+        var isActive = (button.getAttribute('data-profile-filter') || 'all') === activeFilter;
+
+        button.classList.toggle('is-active', isActive);
+        button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+      });
+    }
+
+    function applyBoardFilters() {
+      var query = normalizeFilterText(searchInput ? searchInput.value : '');
+      var visibleCount = 0;
+
+      Array.prototype.forEach.call(cards, function (card) {
+        var cardFilter = card.getAttribute('data-profile-filter-value') || '';
+        var cardSearchText = normalizeFilterText(card.getAttribute('data-profile-search') || '');
+        var matchesFilter = activeFilter === 'all' || cardFilter === activeFilter;
+        var matchesSearch = !query || cardSearchText.indexOf(query) !== -1;
+        var isVisible = matchesFilter && matchesSearch;
+
+        card.hidden = !isVisible;
+        card.classList.toggle('is-hidden', !isVisible);
+
+        if (isVisible) {
+          visibleCount += 1;
+        }
+      });
+
+      if (emptyState) {
+        emptyState.hidden = visibleCount > 0;
+      }
+
+      if (resultCount) {
+        resultCount.textContent = visibleCount + ' hồ sơ đang mở trên bàn';
+      }
+    }
+
+    Array.prototype.forEach.call(filterButtons, function (button) {
+      button.addEventListener('click', function () {
+        activeFilter = button.getAttribute('data-profile-filter') || 'all';
+        updateFilterButtons();
+        applyBoardFilters();
+      });
+    });
+
+    if (searchInput) {
+      searchInput.addEventListener('input', applyBoardFilters);
+    }
+
+    updateFilterButtons();
+    applyBoardFilters();
+  });
 
   document.addEventListener('keyup', function (event) {
     if (event.key !== 'Escape') {

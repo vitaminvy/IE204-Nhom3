@@ -180,7 +180,7 @@ function cowm_customize_register( $wp_customize ) {
 	$wp_customize->add_setting(
 		'cowm_hero_secondary_url',
 		array(
-			'default'           => home_url( '/#phac-hoa' ),
+			'default'           => cowm_get_profile_board_page_url(),
 			'sanitize_callback' => 'esc_url_raw',
 		)
 	);
@@ -340,7 +340,7 @@ function cowm_customize_register( $wp_customize ) {
 		$wp_customize->add_setting(
 			"cowm_pillar_{$index}_url",
 			array(
-				'default'           => '',
+				'default'           => 2 === $index ? cowm_get_profile_board_page_url() : '',
 				'sanitize_callback' => 'esc_url_raw',
 			)
 		);

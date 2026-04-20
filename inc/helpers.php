@@ -366,6 +366,101 @@ function cowm_get_story_archive_url() {
 }
 
 /**
+ * Get the dedicated profile board page slug.
+ *
+ * @return string
+ */
+function cowm_get_profile_board_page_slug() {
+	return 'phac-hoa-chan-dung';
+}
+
+/**
+ * Get the dedicated profile board page URL.
+ *
+ * @return string
+ */
+function cowm_get_profile_board_page_url() {
+	return home_url( user_trailingslashit( cowm_get_profile_board_page_slug() ) );
+}
+
+/**
+ * Determine whether the current request is the dedicated profile board screen.
+ *
+ * @return bool
+ */
+function cowm_is_profile_board_screen() {
+	return (bool) get_query_var( 'cowm_profile_board' ) || is_page( cowm_get_profile_board_page_slug() );
+}
+
+/**
+ * Register the public query var for the dedicated profile board page.
+ *
+ * @param string[] $vars Existing public query vars.
+ * @return string[]
+ */
+function cowm_register_profile_board_query_var( $vars ) {
+	$vars[] = 'cowm_profile_board';
+
+	return $vars;
+}
+add_filter( 'query_vars', 'cowm_register_profile_board_query_var' );
+
+/**
+ * Register rewrite rules for the dedicated profile board page.
+ *
+ * @return void
+ */
+function cowm_register_profile_board_rewrite_rules() {
+	$slug = trim( (string) cowm_get_profile_board_page_slug(), '/' );
+
+	if ( '' === $slug ) {
+		return;
+	}
+
+	add_rewrite_rule(
+		'^' . preg_quote( $slug, '/' ) . '/?$',
+		'index.php?cowm_profile_board=1',
+		'top'
+	);
+}
+add_action( 'init', 'cowm_register_profile_board_rewrite_rules', 20 );
+
+/**
+ * Flush rewrite rules once when the profile board route changes.
+ *
+ * @return void
+ */
+function cowm_maybe_flush_profile_board_rewrite_rules() {
+	$version = '2026-04-20-profile-board-v1';
+
+	if ( get_option( 'cowm_profile_board_rewrite_version' ) === $version ) {
+		return;
+	}
+
+	cowm_register_profile_board_rewrite_rules();
+	flush_rewrite_rules( false );
+	update_option( 'cowm_profile_board_rewrite_version', $version, false );
+}
+add_action( 'init', 'cowm_maybe_flush_profile_board_rewrite_rules', 100 );
+
+/**
+ * Swap in the dedicated template for the profile board route.
+ *
+ * @param string $template Resolved template path.
+ * @return string
+ */
+function cowm_include_profile_board_template( $template ) {
+	if ( ! get_query_var( 'cowm_profile_board' ) ) {
+		return $template;
+	}
+
+	$profile_template = locate_template( 'page-phac-hoa-chan-dung.php' );
+
+	return $profile_template ? $profile_template : $template;
+}
+add_filter( 'template_include', 'cowm_include_profile_board_template', 99 );
+
+/**
  * Get the blog archive URL.
  *
  * @return string
@@ -569,7 +664,8 @@ function cowm_get_story_author_name( $post_id ) {
  * @return string[]
  */
 function cowm_get_story_genres( $post_id, $limit = 6 ) {
-	$limit       = max( 1, absint( $limit ) );
+	$limit       = absint( $limit );
+	$unlimited   = $limit < 1;
 	$genres      = array();
 	$excluded_id = absint( get_theme_mod( 'cowm_stories_category', 0 ) );
 	$tags        = get_the_tags( $post_id );
@@ -584,7 +680,7 @@ function cowm_get_story_genres( $post_id, $limit = 6 ) {
 
 			$genres[] = $tag_name;
 
-			if ( count( $genres ) >= $limit ) {
+			if ( ! $unlimited && count( $genres ) >= $limit ) {
 				return array_values( array_unique( $genres ) );
 			}
 		}
@@ -609,12 +705,14 @@ function cowm_get_story_genres( $post_id, $limit = 6 ) {
 
 		$genres[] = $category_name;
 
-		if ( count( array_unique( $genres ) ) >= $limit ) {
+		if ( ! $unlimited && count( array_unique( $genres ) ) >= $limit ) {
 			break;
 		}
 	}
 
-	return array_slice( array_values( array_unique( $genres ) ), 0, $limit );
+	$genres = array_values( array_unique( $genres ) );
+
+	return $unlimited ? $genres : array_slice( $genres, 0, $limit );
 }
 
 /**
@@ -644,7 +742,8 @@ function cowm_get_relative_post_time( $post_id ) {
  * @return WP_Term[]
  */
 function cowm_get_story_filter_terms( $limit = 12 ) {
-	$limit     = max( 1, absint( $limit ) );
+	$limit     = absint( $limit );
+	$unlimited = $limit < 1;
 	$story_ids = get_posts(
 		array(
 			'post_type'              => 'cowm_story',
@@ -704,7 +803,9 @@ function cowm_get_story_filter_terms( $limit = 12 ) {
 
 	$filter_terms = array();
 
-	foreach ( array_slice( $grouped, 0, $limit, true ) as $item ) {
+	$term_items = $unlimited ? $grouped : array_slice( $grouped, 0, $limit, true );
+
+	foreach ( $term_items as $item ) {
 		$item['term']->count = count( $item['object_ids'] );
 		$filter_terms[]      = $item['term'];
 	}
@@ -715,11 +816,12 @@ function cowm_get_story_filter_terms( $limit = 12 ) {
 /**
  * Return term chips for the highlights section.
  *
- * @param int $limit Maximum terms.
+ * @param int $limit Maximum terms. Use `0` for unlimited.
  * @return WP_Term[]
  */
 function cowm_get_highlight_terms( $limit = 7 ) {
-	$limit = max( 1, absint( $limit ) );
+	$limit           = absint( $limit );
+	$unlimited       = $limit < 1;
 	$highlight_terms = cowm_get_story_filter_terms( $limit );
 
 	if ( ! empty( $highlight_terms ) ) {
@@ -736,12 +838,218 @@ function cowm_get_highlight_terms( $limit = 7 ) {
 	$fallback = get_categories(
 		array(
 			'hide_empty' => true,
-			'number'     => $limit,
+			'number'     => $unlimited ? 0 : $limit,
 			'exclude'    => $excluded,
 		)
 	);
 
 	return is_array( $fallback ) ? $fallback : array();
+}
+
+/**
+ * Get the archive URL for a story taxonomy term.
+ *
+ * @param WP_Term $term Term object.
+ * @return string
+ */
+function cowm_get_story_term_archive_url( $term ) {
+	$archive = cowm_get_story_archive_url();
+
+	if ( ! ( $term instanceof WP_Term ) ) {
+		return $archive;
+	}
+
+	if ( 'post_tag' === $term->taxonomy ) {
+		return add_query_arg( 'story_tag', (int) $term->term_id, $archive );
+	}
+
+	if ( 'category' === $term->taxonomy ) {
+		return add_query_arg( 'story_category', (int) $term->term_id, $archive );
+	}
+
+	$link = get_term_link( $term );
+
+	return is_wp_error( $link ) ? $archive : $link;
+}
+
+/**
+ * Build homepage profiling cards from popular story terms.
+ *
+ * @param int $limit Maximum cards. Use `0` for unlimited.
+ * @return array<int, array<string, mixed>>
+ */
+function cowm_get_profile_board_cards( $limit = 6 ) {
+	$limit          = absint( $limit );
+	$unlimited      = $limit < 1;
+	$terms          = cowm_get_highlight_terms( $unlimited ? 0 : max( $limit * 4, $limit ) );
+	$cards          = array();
+	$used_story_ids = array();
+
+	foreach ( $terms as $term ) {
+		if ( ! ( $term instanceof WP_Term ) ) {
+			continue;
+		}
+
+		$story_ids = array_map(
+			'absint',
+			get_posts(
+				array(
+					'post_type'              => 'cowm_story',
+					'post_status'            => 'publish',
+					'posts_per_page'         => -1,
+					'fields'                 => 'ids',
+					'no_found_rows'          => true,
+					'update_post_meta_cache' => false,
+					'update_post_term_cache' => false,
+					'ignore_sticky_posts'    => true,
+					'tax_query'              => array(
+						array(
+							'taxonomy' => $term->taxonomy,
+							'field'    => 'term_id',
+							'terms'    => (int) $term->term_id,
+						),
+					),
+					'meta_key'               => 'cowm_latest_chapter_timestamp',
+					'orderby'                => array(
+						'meta_value_num' => 'DESC',
+						'date'           => 'DESC',
+					),
+				)
+			)
+		);
+		$story_id          = 0;
+		$fallback_story_id = 0;
+
+		foreach ( $story_ids as $candidate_story_id ) {
+			if ( ! $candidate_story_id ) {
+				continue;
+			}
+
+			if ( ! $fallback_story_id ) {
+				$fallback_story_id = $candidate_story_id;
+			}
+
+			if ( in_array( $candidate_story_id, $used_story_ids, true ) ) {
+				continue;
+			}
+
+			$story_id = $candidate_story_id;
+			break;
+		}
+
+		if ( ! $story_id && $fallback_story_id ) {
+			$story_id = $fallback_story_id;
+		}
+
+		if ( ! $story_id ) {
+			continue;
+		}
+
+		if ( ! in_array( $story_id, $used_story_ids, true ) ) {
+			$used_story_ids[] = $story_id;
+		}
+
+		$story_title      = get_the_title( $story_id );
+		$story_author     = cowm_get_story_author_name( $story_id );
+		$story_progress   = cowm_get_story_progress_label( $story_id );
+		$story_chapters   = cowm_get_story_chapter_count( $story_id );
+		$story_badges     = cowm_get_story_badges( $story_id );
+		$story_genres     = cowm_get_story_genres( $story_id, 2 );
+		$story_image_url  = get_the_post_thumbnail_url( $story_id, 'cowm-featured-story' );
+		$story_image_alt  = cowm_get_post_thumbnail_alt( $story_id, $story_title );
+		$story_excerpt    = '';
+		$supporting_label = '';
+		$lead_line        = '';
+		$facts            = array();
+
+		$story_excerpt = trim( (string) get_post_field( 'post_excerpt', $story_id ) );
+
+		if ( '' === $story_excerpt ) {
+			$story_excerpt = (string) get_the_excerpt( $story_id );
+		}
+
+		$story_excerpt = wp_trim_words( wp_strip_all_tags( $story_excerpt ), 24, '...' );
+
+		if ( ! empty( $story_badges ) ) {
+			$supporting_label = $story_badges[0];
+		} elseif ( ! empty( $story_genres ) ) {
+			$supporting_label = $story_genres[0];
+		} elseif ( $story_progress ) {
+			$supporting_label = $story_progress;
+		} else {
+			$supporting_label = __( 'Mở hồ sơ', 'comeout-with-me' );
+		}
+
+		$lead_line = sprintf(
+			/* translators: %s is the representative story title. */
+			__( 'Hồ sơ tiêu điểm: %s', 'comeout-with-me' ),
+			$story_title
+		);
+
+		if ( $story_author ) {
+			$facts[] = sprintf(
+				/* translators: %s is the story author. */
+				__( 'Tác giả: %s', 'comeout-with-me' ),
+				$story_author
+			);
+		}
+
+		if ( $story_progress ) {
+			$facts[] = $story_progress;
+		}
+
+		if ( $story_chapters ) {
+			$facts[] = sprintf(
+				_n( '%d chương', '%d chương', $story_chapters, 'comeout-with-me' ),
+				$story_chapters
+			);
+		}
+
+		if ( '' === $story_excerpt ) {
+			$story_excerpt = sprintf(
+				/* translators: %s is the term name. */
+				__( 'Lần theo nhãn %s để mở đúng chuyên án và xem những hồ sơ cập nhật gần đây nhất.', 'comeout-with-me' ),
+				$term->name
+			);
+		}
+
+		$cards[] = array(
+			'term'             => $term,
+			'term_id'          => (int) $term->term_id,
+			'url'              => cowm_get_story_term_archive_url( $term ),
+			'count'            => absint( $term->count ),
+			'case_code'        => sprintf( 'FILE #%02d', count( $cards ) + 1 ),
+			'supporting_label' => $supporting_label,
+			'lead_line'        => $lead_line,
+			'excerpt'          => $story_excerpt,
+			'story_id'         => $story_id,
+			'story_title'      => $story_title,
+			'story_image_url'  => $story_image_url,
+			'story_image_alt'  => $story_image_alt,
+			'facts'            => array_slice( array_values( array_unique( array_filter( $facts ) ) ), 0, 2 ),
+			'search_text'      => implode(
+				' ',
+				array_filter(
+					array(
+						$term->name,
+						$supporting_label,
+						$lead_line,
+						$story_excerpt,
+						$story_title,
+						$story_author,
+						implode( ' ', $story_badges ),
+						implode( ' ', $story_genres ),
+					)
+				)
+			),
+		);
+
+		if ( ! $unlimited && count( $cards ) >= $limit ) {
+			break;
+		}
+	}
+
+	return $cards;
 }
 
 /**
@@ -751,19 +1059,7 @@ function cowm_get_highlight_terms( $limit = 7 ) {
  * @return string
  */
 function cowm_get_story_tag_archive_url( $term ) {
-	if ( ! ( $term instanceof WP_Term ) ) {
-		return cowm_get_story_archive_url();
-	}
-
-	$archive = get_post_type_archive_link( 'cowm_story' );
-
-	if ( $archive ) {
-		return add_query_arg( 'story_tag', (int) $term->term_id, $archive );
-	}
-
-	$link = get_term_link( $term );
-
-	return is_wp_error( $link ) ? home_url( '/' ) : $link;
+	return cowm_get_story_term_archive_url( $term );
 }
 
 /**
@@ -772,8 +1068,10 @@ function cowm_get_story_tag_archive_url( $term ) {
  * @return array<int, array<string, mixed>>
  */
 function cowm_get_default_primary_menu_items() {
-	$story_archive_url = cowm_get_story_archive_url();
-	$is_story_screen   = is_post_type_archive( 'cowm_story' ) || is_singular( 'cowm_story' ) || is_singular( 'cowm_chapter' );
+	$story_archive_url      = cowm_get_story_archive_url();
+	$profile_board_url      = cowm_get_profile_board_page_url();
+	$is_story_screen        = is_post_type_archive( 'cowm_story' ) || is_singular( 'cowm_story' ) || is_singular( 'cowm_chapter' );
+	$is_profile_board_screen = cowm_is_profile_board_screen();
 
 	// Resolve the contact page URL.
 	$contact_url       = home_url( '/#lien-he' );
@@ -798,8 +1096,8 @@ function cowm_get_default_primary_menu_items() {
 		),
 		array(
 			'label'      => 'Phác Họa chân dung',
-			'url'        => home_url( '/#phac-hoa' ),
-			'is_current' => false,
+			'url'        => $profile_board_url,
+			'is_current' => $is_profile_board_screen,
 		),
 		array(
 			'label'      => 'Trà Đá Vỉa Hè',
@@ -863,6 +1161,45 @@ function cowm_menu_fallback( $args = array() ) {
 }
 
 /**
+ * Normalize legacy primary menu links that still point to the old homepage anchor.
+ *
+ * @param WP_Post[] $items Menu items.
+ * @param stdClass  $args  Menu arguments.
+ * @return WP_Post[]
+ */
+function cowm_normalize_primary_menu_items( $items, $args ) {
+	if ( empty( $items ) || ! isset( $args->theme_location ) || 'primary' !== $args->theme_location ) {
+		return $items;
+	}
+
+	$legacy_profile_urls = array(
+		home_url( '/#phac-hoa' ),
+		home_url( '/#phac-hoa/' ),
+		'/#phac-hoa',
+		'#phac-hoa',
+	);
+	$profile_board_url   = cowm_get_profile_board_page_url();
+
+	foreach ( $items as $item ) {
+		if ( ! isset( $item->url ) || ! in_array( (string) $item->url, $legacy_profile_urls, true ) ) {
+			continue;
+		}
+
+		$item->url = $profile_board_url;
+
+		if ( cowm_is_profile_board_screen() ) {
+			$item->current   = true;
+			$item->classes   = isset( $item->classes ) && is_array( $item->classes ) ? $item->classes : array();
+			$item->classes[] = 'current-menu-item';
+			$item->classes   = array_values( array_unique( $item->classes ) );
+		}
+	}
+
+	return $items;
+}
+add_filter( 'wp_nav_menu_objects', 'cowm_normalize_primary_menu_items', 10, 2 );
+
+/**
  * Return inline SVG icon markup.
  *
  * @param string $icon Icon slug.
@@ -901,12 +1238,27 @@ function cowm_get_story_archive_seo_description( $term = null ) {
 }
 
 /**
+ * Build SEO description for the profile board page.
+ *
+ * @return string
+ */
+function cowm_get_profile_board_seo_description() {
+	return __( 'Phác Họa Chân Dung giúp bạn lọc truyện đam mỹ theo tag, tác giả, badge, thể loại và tình trạng trước khi mở đúng hồ sơ trong Chuyên Án.', 'comeout-with-me' );
+}
+
+/**
  * Customize document titles for story archive screens.
  *
  * @param array<string, string> $parts Title parts.
  * @return array<string, string>
  */
 function cowm_filter_document_title_parts( $parts ) {
+	if ( cowm_is_profile_board_screen() ) {
+		$parts['title'] = __( 'Phác Họa Chân Dung truyện đam mỹ theo tag', 'comeout-with-me' );
+
+		return $parts;
+	}
+
 	if ( ! is_post_type_archive( 'cowm_story' ) ) {
 		return $parts;
 	}
@@ -948,6 +1300,25 @@ add_filter( 'document_title_parts', 'cowm_filter_document_title_parts' );
  * @return void
  */
 function cowm_output_story_archive_meta_description() {
+	if ( cowm_is_profile_board_screen() ) {
+		$description = wp_strip_all_tags( cowm_get_profile_board_seo_description() );
+
+		printf(
+			"<meta name=\"description\" content=\"%s\" />\n",
+			esc_attr( $description )
+		);
+		printf(
+			"<meta property=\"og:description\" content=\"%s\" />\n",
+			esc_attr( $description )
+		);
+		printf(
+			"<link rel=\"canonical\" href=\"%s\" />\n",
+			esc_url( cowm_get_profile_board_page_url() )
+		);
+
+		return;
+	}
+
 	if ( ! is_post_type_archive( 'cowm_story' ) ) {
 		return;
 	}

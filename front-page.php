@@ -33,9 +33,7 @@ if ( $front_page_id ) {
 	<?php endif; ?>
 	<?php get_template_part( 'template-parts/home/pillars' ); ?>
 	<?php get_template_part( 'template-parts/home/stories' ); ?>
-	<?php get_template_part( 'template-parts/home/highlights' ); ?>
 	<?php get_template_part( 'template-parts/home/blog' ); ?>
 </main>
 <?php
 get_footer();
-

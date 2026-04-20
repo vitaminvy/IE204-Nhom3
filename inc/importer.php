@@ -278,6 +278,119 @@ function cowm_resolve_import_chapter_number( $entry ) {
 }
 
 /**
+ * Merge story metadata, keeping the preferred values first and filling blanks
+ * from fallback entries.
+ *
+ * @param array $preferred Preferred story metadata.
+ * @param array $fallback  Fallback story metadata.
+ * @return array
+ */
+function cowm_merge_import_story_data( $preferred, $fallback ) {
+	$merged       = is_array( $preferred ) ? $preferred : array();
+	$fallback     = is_array( $fallback ) ? $fallback : array();
+	$scalar_keys  = array( 'title', 'slug', 'author', 'status', 'badge_1', 'badge_2', 'cover', 'description' );
+	$merged_genres = isset( $merged['genres'] ) && is_array( $merged['genres'] ) ? $merged['genres'] : array();
+	$fallback_genres = isset( $fallback['genres'] ) && is_array( $fallback['genres'] ) ? $fallback['genres'] : array();
+
+	foreach ( $scalar_keys as $key ) {
+		$current_value  = trim( (string) ( isset( $merged[ $key ] ) ? $merged[ $key ] : '' ) );
+		$fallback_value = trim( (string) ( isset( $fallback[ $key ] ) ? $fallback[ $key ] : '' ) );
+
+		if ( '' === $current_value && '' !== $fallback_value ) {
+			$merged[ $key ] = $fallback_value;
+		}
+	}
+
+	$merged['genres'] = array_values(
+		array_unique(
+			array_filter(
+				array_map(
+					'trim',
+					array_merge( $merged_genres, $fallback_genres )
+				)
+			)
+		)
+	);
+
+	return $merged;
+}
+
+/**
+ * Resolve the story metadata source, preferring chapter 1 when present.
+ *
+ * @param array<int, array> $entries Parsed import entries.
+ * @return array
+ */
+function cowm_resolve_import_story_data( $entries ) {
+	if ( empty( $entries ) ) {
+		return array(
+			'title'       => '',
+			'slug'        => '',
+			'author'      => '',
+			'status'      => '',
+			'badge_1'     => '',
+			'badge_2'     => '',
+			'genres'      => array(),
+			'cover'       => '',
+			'description' => '',
+		);
+	}
+
+	$candidates = array_values(
+		array_filter(
+			$entries,
+			static function ( $entry ) {
+				$story = isset( $entry['story'] ) && is_array( $entry['story'] ) ? $entry['story'] : array();
+
+				return '' !== trim( (string) ( isset( $story['title'] ) ? $story['title'] : '' ) )
+					|| '' !== sanitize_title( isset( $story['slug'] ) ? $story['slug'] : '' )
+					|| ! empty( $story['genres'] );
+			}
+		)
+	);
+
+	if ( empty( $candidates ) ) {
+		$first_entry = reset( $entries );
+
+		return isset( $first_entry['story'] ) && is_array( $first_entry['story'] ) ? $first_entry['story'] : array();
+	}
+
+	usort(
+		$candidates,
+		static function ( $left, $right ) {
+			$left_number  = absint( isset( $left['chapter']['resolved_number'] ) ? $left['chapter']['resolved_number'] : 0 );
+			$right_number = absint( isset( $right['chapter']['resolved_number'] ) ? $right['chapter']['resolved_number'] : 0 );
+			$left_rank    = 1 === $left_number ? 0 : ( $left_number ? 1 : 2 );
+			$right_rank   = 1 === $right_number ? 0 : ( $right_number ? 1 : 2 );
+
+			if ( $left_rank !== $right_rank ) {
+				return $left_rank <=> $right_rank;
+			}
+
+			if ( $left_number !== $right_number ) {
+				return $left_number <=> $right_number;
+			}
+
+			$left_name  = isset( $left['source']['basename'] ) ? (string) $left['source']['basename'] : '';
+			$right_name = isset( $right['source']['basename'] ) ? (string) $right['source']['basename'] : '';
+
+			return strnatcasecmp( $left_name, $right_name );
+		}
+	);
+
+	$story_data = isset( $candidates[0]['story'] ) && is_array( $candidates[0]['story'] ) ? $candidates[0]['story'] : array();
+
+	foreach ( array_slice( $candidates, 1 ) as $candidate ) {
+		$story_data = cowm_merge_import_story_data(
+			$story_data,
+			isset( $candidate['story'] ) && is_array( $candidate['story'] ) ? $candidate['story'] : array()
+		);
+	}
+
+	return $story_data;
+}
+
+/**
  * Validate parsed import data before writing to WordPress.
  *
  * @param array $entry Parsed file data.
@@ -1221,8 +1334,9 @@ function cowm_import_story_folder( $folder_input, $args = array() ) {
 	natsort( $chapter_files );
 	$chapter_files = array_values( $chapter_files );
 
-	$entries  = array();
-	$warnings = array();
+	$entries       = array();
+	$story_sources = array();
+	$warnings      = array();
 
 	foreach ( $chapter_files as $chapter_file ) {
 		$raw_contents = file_get_contents( $chapter_file );
@@ -1262,7 +1376,10 @@ function cowm_import_story_folder( $folder_input, $args = array() ) {
 			return $entry;
 		}
 
-		$validation = cowm_validate_import_entry( $entry );
+		$resolved_number                    = cowm_resolve_import_chapter_number( $entry );
+		$entry['chapter']['resolved_number'] = $resolved_number['number'];
+		$story_sources[]                    = $entry;
+		$validation                         = cowm_validate_import_entry( $entry );
 
 		if ( ! empty( $validation['errors'] ) ) {
 			if ( ! empty( $args['skip_invalid_entries'] ) ) {
@@ -1298,9 +1415,6 @@ function cowm_import_story_folder( $folder_input, $args = array() ) {
 			);
 		}
 
-		$resolved_number                    = cowm_resolve_import_chapter_number( $entry );
-		$entry['chapter']['resolved_number'] = $resolved_number['number'];
-
 		$entries[] = $entry;
 	}
 
@@ -1308,7 +1422,7 @@ function cowm_import_story_folder( $folder_input, $args = array() ) {
 		return new WP_Error( 'missing_valid_chapters', __( 'Không có file chương hợp lệ nào để import.', 'comeout-with-me' ) );
 	}
 
-	$primary_story = $entries[0]['story'];
+	$primary_story = cowm_resolve_import_story_data( ! empty( $story_sources ) ? $story_sources : $entries );
 	$story_result  = cowm_upsert_import_story( $primary_story, $folder_path );
 
 	if ( is_wp_error( $story_result ) ) {

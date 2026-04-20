@@ -17,6 +17,7 @@ $badges          = cowm_get_story_badges( $story_id, $story_category );
 $progress_label  = cowm_get_story_progress_label( $story_id );
 $relative_time   = cowm_get_relative_post_time( $story_id );
 $chapter_count   = cowm_get_story_chapter_count( $story_id );
+$story_genres    = cowm_get_story_genres( $story_id, 0 );
 $first_chapter   = cowm_get_story_first_chapter( $story_id );
 $latest_chapter  = cowm_get_story_latest_chapter( $story_id );
 $chapters        = cowm_get_story_chapters( $story_id, 'ASC' );
@@ -40,6 +41,14 @@ $has_story_cover = has_post_thumbnail();
 						<div class="story-badges">
 							<?php foreach ( $badges as $badge ) : ?>
 								<span class="story-badge"><?php echo esc_html( $badge ); ?></span>
+							<?php endforeach; ?>
+						</div>
+					<?php endif; ?>
+
+					<?php if ( ! empty( $story_genres ) ) : ?>
+						<div class="story-badges story-badges--genres">
+							<?php foreach ( $story_genres as $story_genre ) : ?>
+								<span class="story-badge"><?php echo esc_html( $story_genre ); ?></span>
 							<?php endforeach; ?>
 						</div>
 					<?php endif; ?>

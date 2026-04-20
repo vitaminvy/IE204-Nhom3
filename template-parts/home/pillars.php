@@ -23,6 +23,24 @@ $legacy_copy_map = array(
 	'Ghe quan'                                                                                      => 'Ghé quán',
 );
 
+$profile_board_url = trim( (string) get_theme_mod( 'cowm_pillar_2_url', '' ) );
+
+if (
+	'' === $profile_board_url
+	|| in_array(
+		$profile_board_url,
+		array(
+			home_url( '/#phac-hoa' ),
+			home_url( '/#phac-hoa/' ),
+			'/#phac-hoa',
+			'#phac-hoa',
+		),
+		true
+	)
+) {
+	$profile_board_url = cowm_get_profile_board_page_url();
+}
+
 $pillars = array(
 	array(
 		'icon'  => 'folder',
@@ -36,7 +54,7 @@ $pillars = array(
 		'title' => cowm_normalize_legacy_copy( (string) get_theme_mod( 'cowm_pillar_2_title', __( 'Phác Họa', 'comeout-with-me' ) ), $legacy_copy_map ),
 		'text'  => cowm_normalize_legacy_copy( (string) get_theme_mod( 'cowm_pillar_2_text', __( 'Hệ thống lọc gu đọc theo tag, bối cảnh, trạng thái và nhân vật để độc giả tìm đúng bộ phù hợp.', 'comeout-with-me' ) ), $legacy_copy_map ),
 		'label' => cowm_normalize_legacy_copy( (string) get_theme_mod( 'cowm_pillar_2_label', __( 'Tìm kiếm gu', 'comeout-with-me' ) ), $legacy_copy_map ),
-		'url'   => get_theme_mod( 'cowm_pillar_2_url', '' ),
+		'url'   => $profile_board_url,
 	),
 	array(
 		'icon'  => 'cafe',
