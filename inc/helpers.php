@@ -528,6 +528,24 @@ function cowm_get_story_progress_label( $post_id ) {
 }
 
 /**
+ * Get canonical story status text.
+ *
+ * @param int $post_id Post ID.
+ * @return string
+ */
+function cowm_get_story_status_text( $post_id ) {
+	$status = trim( (string) get_post_meta( $post_id, 'cowm_story_status_text', true ) );
+
+	if ( $status ) {
+		return $status;
+	}
+
+	$status = trim( (string) get_post_meta( $post_id, 'cowm_status_label', true ) );
+
+	return $status ? $status : '';
+}
+
+/**
  * Get author label for a story card.
  *
  * @param int $post_id Post ID.
@@ -541,6 +559,62 @@ function cowm_get_story_author_name( $post_id ) {
 	}
 
 	return '';
+}
+
+/**
+ * Get genre chips for a story card.
+ *
+ * @param int $post_id Post ID.
+ * @param int $limit   Maximum number of terms.
+ * @return string[]
+ */
+function cowm_get_story_genres( $post_id, $limit = 6 ) {
+	$limit       = max( 1, absint( $limit ) );
+	$genres      = array();
+	$excluded_id = absint( get_theme_mod( 'cowm_stories_category', 0 ) );
+	$tags        = get_the_tags( $post_id );
+
+	if ( $tags && ! is_wp_error( $tags ) ) {
+		foreach ( $tags as $tag ) {
+			$tag_name = trim( (string) $tag->name );
+
+			if ( '' === $tag_name ) {
+				continue;
+			}
+
+			$genres[] = $tag_name;
+
+			if ( count( $genres ) >= $limit ) {
+				return array_values( array_unique( $genres ) );
+			}
+		}
+	}
+
+	$categories = get_the_category( $post_id );
+
+	foreach ( $categories as $category ) {
+		if ( $excluded_id && (int) $category->term_id === $excluded_id ) {
+			continue;
+		}
+
+		if ( 'uncategorized' === $category->slug ) {
+			continue;
+		}
+
+		$category_name = trim( (string) $category->name );
+
+		if ( '' === $category_name ) {
+			continue;
+		}
+
+		$genres[] = $category_name;
+
+		if ( count( array_unique( $genres ) ) >= $limit ) {
+			break;
+		}
+	}
+
+	return array_slice( array_values( array_unique( $genres ) ), 0, $limit );
 }
 
 /**
